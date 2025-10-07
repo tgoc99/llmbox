@@ -106,18 +106,48 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     // Parse response
     const data: OpenAICompletionResponse = await response.json();
 
-    // Extract content from response
-    if (!data.choices || data.choices.length === 0 || !data.choices[0].message?.content) {
-      throw new Error('Invalid OpenAI API response: missing content');
+    // Validate response structure
+    if (!data.choices || data.choices.length === 0) {
+      logError('openai_invalid_response', {
+        messageId: email.messageId,
+        error: 'No choices returned in response',
+      });
+      throw new Error('Invalid OpenAI API response: no choices returned');
     }
 
-    const content = data.choices[0].message.content;
+    const choice = data.choices[0];
+    if (!choice.message) {
+      logError('openai_invalid_response', {
+        messageId: email.messageId,
+        error: 'No message in choice',
+      });
+      throw new Error('Invalid OpenAI API response: no message in choice');
+    }
+
+    // Handle refusal or missing content
+    if (!choice.message.content) {
+      if (choice.message.refusal) {
+        logError('openai_refusal', {
+          messageId: email.messageId,
+          refusal: choice.message.refusal,
+        });
+        throw new Error(`OpenAI refused to generate response: ${choice.message.refusal}`);
+      }
+      logError('openai_invalid_response', {
+        messageId: email.messageId,
+        error: 'No content in message',
+      });
+      throw new Error('Invalid OpenAI API response: no content in message');
+    }
+
+    const content = choice.message.content;
     const model = data.model;
     const tokenCount = data.usage?.total_tokens || 0;
     const completionTime = Date.now() - startTime;
 
     // Log success
     logInfo('openai_api_response_received', {
+        content,
       messageId: email.messageId,
       model,
       tokenCount,

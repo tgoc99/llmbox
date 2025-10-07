@@ -7,6 +7,9 @@ import { formatOutgoingEmail, sendEmail } from '../../supabase/functions/email-w
 import type { IncomingEmail, LLMResponse } from '../../supabase/functions/email-webhook/types.ts';
 
 Deno.test('formatOutgoingEmail - creates correct OutgoingEmail structure', () => {
+  // Set environment variable for service email
+  Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@mydomain.com');
+
   const incomingEmail: IncomingEmail = {
     from: 'user@example.com',
     to: 'assistant@mydomain.com',
@@ -216,11 +219,14 @@ Deno.test('sendEmail - throws error if SERVICE_EMAIL_ADDRESS not configured', as
 Deno.test('sendEmail - creates correct SendGrid API payload structure', async () => {
   // Mock fetch
   const originalFetch = globalThis.fetch;
-  let capturedRequest: Request | null = null;
+  let capturedRequest: Request | undefined;
 
-  globalThis.fetch = async (input: string | URL | Request) => {
+  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
     if (input instanceof Request) {
-      capturedRequest = input;
+      capturedRequest = input.clone();
+    } else if (init) {
+      // Create a Request object from URL and init
+      capturedRequest = new Request(input, init);
     }
     return new Response(null, { status: 202 });
   };
@@ -242,9 +248,9 @@ Deno.test('sendEmail - creates correct SendGrid API payload structure', async ()
     await sendEmail(outgoingEmail);
 
     // Verify request was captured
-    assertEquals(capturedRequest !== null, true);
+    assertEquals(capturedRequest !== undefined, true);
 
-    if (capturedRequest) {
+    if (capturedRequest !== undefined) {
       // Verify headers
       assertEquals(capturedRequest.headers.get('Authorization'), 'Bearer SG.test-key');
       assertEquals(capturedRequest.headers.get('Content-Type'), 'application/json');

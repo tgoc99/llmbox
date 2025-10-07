@@ -8,7 +8,7 @@
  */
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { generateResponse } from '../../supabase/functions/email-webhook/llmClient.ts';
+import { generateResponse, formatPrompt } from '../../supabase/functions/email-webhook/llmClient.ts';
 import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
 
 /**
@@ -22,7 +22,7 @@ const hasApiKey = (): boolean => {
 /**
  * Create a test email for integration testing
  */
-const createTestEmail = (): IncomingEmail => {
+const createTestEmail = (overrides?: Partial<IncomingEmail>): IncomingEmail => {
   return {
     from: 'test@example.com',
     to: 'assistant@yourdomain.com',
@@ -32,6 +32,7 @@ const createTestEmail = (): IncomingEmail => {
     inReplyTo: null,
     references: [],
     timestamp: new Date(),
+    ...overrides,
   };
 };
 
@@ -209,6 +210,259 @@ Deno.test({
     console.log('✅ OpenAI API email length test passed');
     console.log(`   Short email tokens: ${shortResponse.tokenCount}`);
     console.log(`   Long email tokens: ${longResponse.tokenCount}`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - handles technical support query',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Technical support email
+    const testEmail = createTestEmail({
+      subject: 'How to integrate your API?',
+      body: 'Hi, I\'m trying to integrate your API into my application. Can you provide me with the basic steps to get started? I\'m using Node.js.',
+      messageId: '<tech-support@llmbox.local>',
+    });
+
+    // Act
+    const response = await generateResponse(testEmail);
+
+    // Assert
+    assertExists(response.content);
+    assert(response.content.length > 50, 'Technical response should be detailed');
+    assert(response.tokenCount > 0);
+    assert(
+      response.content.toLowerCase().includes('api') ||
+      response.content.toLowerCase().includes('integrate') ||
+      response.content.toLowerCase().includes('node'),
+      'Response should be relevant to the query'
+    );
+
+    console.log('✅ OpenAI API technical support test passed');
+    console.log(`   Response length: ${response.content.length} chars`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - handles business inquiry',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Business inquiry
+    const testEmail = createTestEmail({
+      subject: 'Pricing and plans',
+      body: 'Hello, I\'m interested in your service for my company. Can you tell me about your pricing plans and what features are included?',
+      messageId: '<business@llmbox.local>',
+    });
+
+    // Act
+    const response = await generateResponse(testEmail);
+
+    // Assert
+    assertExists(response.content);
+    assert(response.content.length > 30, 'Business response should be substantive');
+    assert(response.model.includes('gpt'), 'Should use GPT model');
+
+    console.log('✅ OpenAI API business inquiry test passed');
+    console.log(`   Model: ${response.model}`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - handles complaint or issue',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Customer complaint
+    const testEmail = createTestEmail({
+      subject: 'Issue with recent service',
+      body: 'I\'ve been having problems with your service today. The system keeps timing out and I can\'t complete my work. This is very frustrating!',
+      messageId: '<complaint@llmbox.local>',
+    });
+
+    // Act
+    const response = await generateResponse(testEmail);
+
+    // Assert
+    assertExists(response.content);
+    assert(response.content.length > 40, 'Complaint response should be empathetic and detailed');
+    assert(response.tokenCount > 20, 'Response should use reasonable tokens');
+    
+    // Check for professional tone markers
+    const lowerContent = response.content.toLowerCase();
+    const hasProfessionalTone = 
+      lowerContent.includes('sorry') || 
+      lowerContent.includes('apologize') ||
+      lowerContent.includes('understand') ||
+      lowerContent.includes('help');
+    
+    assert(hasProfessionalTone, 'Response should have empathetic/professional tone');
+
+    console.log('✅ OpenAI API complaint handling test passed');
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - handles multi-paragraph email',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Long, detailed email
+    const testEmail = createTestEmail({
+      subject: 'Multiple questions about your service',
+      body: `Hi there,
+
+I have several questions about your email assistant service:
+
+1. How does the AI understand context from previous emails in a thread?
+2. What happens if I send an email in a different language?
+3. Can I customize the AI's response style?
+4. Is there a limit to how many emails I can send per day?
+
+I'm considering using this for my small business and want to make sure it meets our needs.
+
+Thanks in advance for your help!
+
+Best regards,
+John`,
+      messageId: '<multi-question@llmbox.local>',
+    });
+
+    // Act
+    const response = await generateResponse(testEmail);
+
+    // Assert
+    assertExists(response.content);
+    assert(response.content.length > 100, 'Response to multi-paragraph email should be comprehensive');
+    assert(response.tokenCount > 50, 'Should use significant tokens for detailed response');
+    
+    console.log('✅ OpenAI API multi-paragraph test passed');
+    console.log(`   Input length: ${testEmail.body.length} chars`);
+    console.log(`   Response length: ${response.content.length} chars`);
+    console.log(`   Token count: ${response.tokenCount}`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - validates prompt formatting',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange
+    const testEmail = createTestEmail({
+      from: 'user@company.com',
+      subject: 'Quick question',
+      body: 'What is your business hours?',
+    });
+
+    // Act - Test prompt formatting
+    const prompt = formatPrompt(testEmail);
+
+    // Assert - Prompt structure
+    assertExists(prompt);
+    assert(prompt.includes('Respond to this email:'), 'Prompt should have instruction');
+    assert(prompt.includes(testEmail.from), 'Prompt should include sender');
+    assert(prompt.includes(testEmail.subject), 'Prompt should include subject');
+    assert(prompt.includes(testEmail.body), 'Prompt should include body');
+
+    // Act - Generate actual response
+    const response = await generateResponse(testEmail);
+
+    // Assert - Response is generated
+    assertExists(response.content);
+    assert(response.content.length > 10);
+
+    console.log('✅ OpenAI API prompt formatting test passed');
+    console.log(`   Prompt length: ${prompt.length} chars`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - handles special characters in email',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Email with special characters
+    const testEmail = createTestEmail({
+      subject: 'Test with émojis & spëcial çhars',
+      body: 'Hello! 🎉 I have a question about pricing: $100-$200/month? Also, what about 50% discounts & other deals? Let me know! 😊',
+      messageId: '<special-chars@llmbox.local>',
+    });
+
+    // Act
+    const response = await generateResponse(testEmail);
+
+    // Assert
+    assertExists(response.content);
+    assert(response.content.length > 20, 'Should generate meaningful response');
+    assert(response.tokenCount > 0);
+
+    console.log('✅ OpenAI API special characters test passed');
+    console.log(`   Input had emojis and special chars, response generated successfully`);
+  },
+});
+
+Deno.test({
+  name: 'OpenAI integration - consistency check with multiple calls',
+  ignore: !hasApiKey(),
+  async fn() {
+    if (!hasApiKey()) {
+      console.log('⏭️  Skipping OpenAI integration test - OPENAI_API_KEY not set');
+      return;
+    }
+
+    // Arrange - Same email for multiple calls
+    const testEmail = createTestEmail({
+      subject: 'Simple question',
+      body: 'What are your service hours?',
+      messageId: '<consistency-test@llmbox.local>',
+    });
+
+    // Act - Call API twice
+    const response1 = await generateResponse(testEmail);
+    const response2 = await generateResponse(testEmail);
+
+    // Assert - Both responses are valid
+    assertExists(response1.content);
+    assertExists(response2.content);
+    assert(response1.content.length > 10);
+    assert(response2.content.length > 10);
+    assert(response1.model === response2.model, 'Should use same model');
+    
+    // Responses should be similar in length (within 3x factor)
+    const lengthRatio = Math.max(response1.content.length, response2.content.length) / 
+                        Math.min(response1.content.length, response2.content.length);
+    assert(lengthRatio < 3, 'Response lengths should be relatively consistent');
+
+    console.log('✅ OpenAI API consistency test passed');
+    console.log(`   Response 1 length: ${response1.content.length} chars`);
+    console.log(`   Response 2 length: ${response2.content.length} chars`);
+    console.log(`   Length ratio: ${lengthRatio.toFixed(2)}`);
   },
 });
 

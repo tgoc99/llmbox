@@ -99,6 +99,8 @@ deno task test
 - Includes unit and integration tests
 - Shows pass/fail summary
 
+**Note:** Integration tests require API keys and will be skipped if credentials are not set.
+
 **Example output:**
 ```
 running 15 tests from ./tests/unit/
@@ -140,17 +142,74 @@ deno task test:integration
 
 **What it does:**
 - Runs tests in `tests/integration/` directory
-- Tests real API integrations (OpenAI, SendGrid)
-- Requires environment variables configured
+- Makes **real API calls** to OpenAI and SendGrid
+- Sends **real test emails** to verify delivery
+- Tests complete end-to-end workflows
+- Includes 27 comprehensive tests
 
 **Prerequisites:**
-- `OPENAI_API_KEY` set in environment
-- `SENDGRID_API_KEY` set in environment
+```bash
+# Required environment variables
+export OPENAI_API_KEY="sk-your-key"
+export SENDGRID_API_KEY="SG.your-key"
+export SERVICE_EMAIL_ADDRESS="assistant@yourdomain.com"
+
+# Optional - for receiving test emails
+export TEST_RECIPIENT_EMAIL="test@yourdomain.com"
+```
+
+**Test Suites:**
+1. **OpenAI Tests** (12 tests, ~20-30s)
+   - Basic response generation
+   - Technical support queries
+   - Business inquiries
+   - Complaint handling
+   - Special characters
+   - Performance benchmarks
+
+2. **SendGrid Tests** (8 tests, ~15-25s)
+   - Email sending and delivery
+   - Email threading (In-Reply-To, References)
+   - Long emails and special characters
+   - Batch sending
+   - Performance timing
+
+3. **End-to-End Tests** (7 tests, ~30-50s)
+   - Complete email workflows
+   - Thread continuations
+   - Different email types
+   - Performance metrics
 
 **When to use:**
 - Before deploying to production
-- To verify API keys work
+- To verify API keys work correctly
 - After changing API integration code
+- Before major releases
+
+**⚠️ Important Notes:**
+- These tests consume API credits (costs money)
+- Test emails will be sent to TEST_RECIPIENT_EMAIL
+- Check your inbox to verify email delivery
+- Tests will be skipped if credentials are missing
+
+**Alternative: Use the helper script**
+```bash
+# Interactive menu
+./scripts/run-integration-tests.sh
+
+# Or use command-line options
+./scripts/run-integration-tests.sh --all      # All tests
+./scripts/run-integration-tests.sh --openai   # OpenAI only
+./scripts/run-integration-tests.sh --sendgrid # SendGrid only
+./scripts/run-integration-tests.sh --e2e      # End-to-end only
+./scripts/run-integration-tests.sh --config   # Show config
+```
+
+**Quick Start:**
+See [tests/integration/QUICKSTART.md](../tests/integration/QUICKSTART.md) for a quick setup guide.
+
+**Full Documentation:**
+See [tests/integration/README.md](../tests/integration/README.md) for detailed documentation.
 
 ---
 

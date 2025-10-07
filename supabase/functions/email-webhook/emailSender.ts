@@ -108,6 +108,14 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
 
           // Check if response is 202 Accepted
           if (res.status === 202) {
+            // Log SendGrid message ID if available
+            const messageId = res.headers.get('X-Message-Id');
+            if (messageId) {
+              logInfo('sendgrid_message_id', {
+                messageId: email.inReplyTo,
+                sendgridMessageId: messageId,
+              });
+            }
             return res;
           }
 
