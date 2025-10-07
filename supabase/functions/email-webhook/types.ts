@@ -114,10 +114,7 @@ export interface SendGridEmailRequest {
   personalizations: Array<{
     to: Array<{ email: string }>;
     subject: string;
-    headers?: {
-      'In-Reply-To': string;
-      References: string;
-    };
+    headers?: Record<string, string>;
   }>;
   from: { email: string };
   content: Array<{

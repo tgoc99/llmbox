@@ -122,3 +122,40 @@ Deno.test('error emails - are professional and clear', () => {
   assertEquals(errorEmail.body.includes('API'), false);
 });
 
+Deno.test('error emails - ensure message IDs have angle brackets', () => {
+  Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
+
+  // Create email with message ID without angle brackets
+  const emailWithoutBrackets: IncomingEmail = {
+    ...mockIncomingEmail,
+    messageId: 'test123@example.com', // Missing angle brackets
+    references: ['ref1@example.com', '<ref2@example.com>'], // Mixed format
+  };
+
+  const errorEmail = getOpenAIErrorEmail(emailWithoutBrackets, new Error('test'));
+
+  // All references should have angle brackets
+  assertEquals(errorEmail.references.every((ref) => ref.startsWith('<') && ref.endsWith('>')), true);
+  assertEquals(errorEmail.references.includes('<ref1@example.com>'), true);
+  assertEquals(errorEmail.references.includes('<ref2@example.com>'), true);
+  assertEquals(errorEmail.references.includes('<test123@example.com>'), true);
+});
+
+Deno.test('error emails - filter out empty references', () => {
+  Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
+
+  // Create email with empty/whitespace references
+  const emailWithEmptyRefs: IncomingEmail = {
+    ...mockIncomingEmail,
+    messageId: '<test123@example.com>',
+    references: ['', '  ', '<valid@example.com>'],
+  };
+
+  const errorEmail = getRateLimitErrorEmail(emailWithEmptyRefs);
+
+  // Should only include valid references
+  assertEquals(errorEmail.references.length, 2); // valid@example.com + test123@example.com
+  assertEquals(errorEmail.references.includes('<valid@example.com>'), true);
+  assertEquals(errorEmail.references.includes('<test123@example.com>'), true);
+});
+

@@ -6,6 +6,25 @@ import { config } from './config.ts';
 import type { IncomingEmail, OutgoingEmail } from './types.ts';
 
 /**
+ * Ensure message ID is properly formatted with angle brackets
+ * Per RFC 5322, message IDs must be enclosed in angle brackets
+ * @param messageId - Message ID to format
+ * @returns Properly formatted message ID with angle brackets
+ */
+const ensureAngleBrackets = (messageId: string): string => {
+  const trimmed = messageId.trim();
+  if (!trimmed) return '';
+
+  // If already has angle brackets, return as-is
+  if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+    return trimmed;
+  }
+
+  // Add angle brackets
+  return `<${trimmed}>`;
+};
+
+/**
  * Get error email for OpenAI API failures
  * @param originalEmail - The original incoming email
  * @param error - The error that occurred
@@ -28,7 +47,10 @@ If this issue persists, please reach out to our support team.
 Best regards,
 Email Assistant Service`;
 
-  const references = [...originalEmail.references, originalEmail.messageId];
+  // Build references array with proper formatting
+  const references = [...originalEmail.references, originalEmail.messageId]
+    .map((ref) => ensureAngleBrackets(ref))
+    .filter((ref) => ref.length > 0);
 
   return {
     from: config.serviceEmailAddress,
@@ -59,7 +81,10 @@ Thank you for your patience!
 Best regards,
 Email Assistant Service`;
 
-  const references = [...originalEmail.references, originalEmail.messageId];
+  // Build references array with proper formatting
+  const references = [...originalEmail.references, originalEmail.messageId]
+    .map((ref) => ensureAngleBrackets(ref))
+    .filter((ref) => ref.length > 0);
 
   return {
     from: config.serviceEmailAddress,
@@ -90,7 +115,10 @@ If this problem continues, please contact our support team.
 Best regards,
 Email Assistant Service`;
 
-  const references = [...originalEmail.references, originalEmail.messageId];
+  // Build references array with proper formatting
+  const references = [...originalEmail.references, originalEmail.messageId]
+    .map((ref) => ensureAngleBrackets(ref))
+    .filter((ref) => ref.length > 0);
 
   return {
     from: config.serviceEmailAddress,
@@ -121,7 +149,10 @@ Thank you for your patience!
 Best regards,
 Email Assistant Service`;
 
-  const references = [...originalEmail.references, originalEmail.messageId];
+  // Build references array with proper formatting
+  const references = [...originalEmail.references, originalEmail.messageId]
+    .map((ref) => ensureAngleBrackets(ref))
+    .filter((ref) => ref.length > 0);
 
   return {
     from: config.serviceEmailAddress,

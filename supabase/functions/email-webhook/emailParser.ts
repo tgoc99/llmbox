@@ -20,6 +20,26 @@ export class ValidationError extends Error {
 }
 
 /**
+ * Extract email address from a string that may contain display name
+ * Handles formats like:
+ * - "Display Name" <email@example.com>
+ * - <email@example.com>
+ * - email@example.com
+ * @param emailString - Email string to parse
+ * @returns Just the email address without display name
+ */
+const extractEmailAddress = (emailString: string): string => {
+  // Match email in angle brackets: "Name" <email@example.com> or <email@example.com>
+  const bracketMatch = emailString.match(/<([^>]+)>/);
+  if (bracketMatch) {
+    return bracketMatch[1].trim();
+  }
+
+  // If no angle brackets, return the whole string trimmed (already just an email)
+  return emailString.trim();
+};
+
+/**
  * Extract Message-ID from email headers
  */
 const extractMessageId = (headers: string): string => {
@@ -87,10 +107,14 @@ export const parseIncomingEmail = (formData: FormData): IncomingEmail => {
   const inReplyTo = extractInReplyTo(headers!);
   const references = extractReferences(headers!);
 
+  // Extract clean email addresses (remove display names)
+  const fromEmail = extractEmailAddress(from!);
+  const toEmail = extractEmailAddress(to!);
+
   // Return populated IncomingEmail object
   return {
-    from: from!,
-    to: to!,
+    from: fromEmail,
+    to: toEmail,
     subject: subject!,
     body: text!,
     messageId,

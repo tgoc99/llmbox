@@ -14,6 +14,25 @@ import type {
 } from './types.ts';
 
 /**
+ * Ensure message ID is properly formatted with angle brackets
+ * Per RFC 5322, message IDs must be enclosed in angle brackets
+ * @param messageId - Message ID to format
+ * @returns Properly formatted message ID with angle brackets
+ */
+const ensureAngleBrackets = (messageId: string): string => {
+  const trimmed = messageId.trim();
+  if (!trimmed) return '';
+
+  // If already has angle brackets, return as-is
+  if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+    return trimmed;
+  }
+
+  // Add angle brackets
+  return `<${trimmed}>`;
+};
+
+/**
  * Format outgoing email from incoming email and LLM response
  * @param incoming - Original incoming email
  * @param llmResponse - Generated LLM response
@@ -29,7 +48,10 @@ export const formatOutgoingEmail = (
     : `Re: ${incoming.subject}`;
 
   // Build references array by appending original message ID to existing references
-  const references = [...incoming.references, incoming.messageId];
+  // Filter out empty values and ensure proper formatting
+  const references = [...incoming.references, incoming.messageId]
+    .map((ref) => ensureAngleBrackets(ref))
+    .filter((ref) => ref.length > 0);
 
   return {
     from: config.serviceEmailAddress,
@@ -56,15 +78,28 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
   }
 
   // Build SendGrid API request body
+  // Ensure In-Reply-To is properly formatted with angle brackets
+  const inReplyTo = ensureAngleBrackets(email.inReplyTo);
+
+  // Build headers object conditionally based on whether we have threading info
+  const headers: Record<string, string> = {};
+
+  if (inReplyTo) {
+    headers['In-Reply-To'] = inReplyTo;
+  }
+
+  // Only add References header if we have valid references
+  if (email.references.length > 0) {
+    headers['References'] = email.references.join(' ');
+  }
+
   const requestBody: SendGridEmailRequest = {
     personalizations: [
       {
         to: [{ email: email.to }],
         subject: email.subject,
-        headers: {
-          'In-Reply-To': email.inReplyTo,
-          References: email.references.join(' '),
-        },
+        // Only include headers if we have any
+        ...(Object.keys(headers).length > 0 ? { headers } : {}),
       },
     ],
     from: { email: email.from },
@@ -82,6 +117,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
     to: email.to,
     from: email.from,
     subject: email.subject,
+    body: requestBody
   });
 
   try {

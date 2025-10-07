@@ -150,3 +150,48 @@ Deno.test('parseIncomingEmail - ValidationError includes context', () => {
     }
   }
 });
+
+Deno.test('parseIncomingEmail - extracts email from display name format', () => {
+  const formData = new FormData();
+  formData.append('from', '"Tommy O\'Connor" <tgoc99@gmail.com>');
+  formData.append('to', '"Assistant" <assistant@example.com>');
+  formData.append('subject', 'Test');
+  formData.append('text', 'Test body');
+  formData.append('headers', 'Message-ID: <test@example.com>');
+
+  const email = parseIncomingEmail(formData);
+
+  // Should extract just the email addresses without display names
+  assertEquals(email.from, 'tgoc99@gmail.com');
+  assertEquals(email.to, 'assistant@example.com');
+});
+
+Deno.test('parseIncomingEmail - handles email without display name', () => {
+  const formData = new FormData();
+  formData.append('from', 'user@example.com');
+  formData.append('to', 'assistant@example.com');
+  formData.append('subject', 'Test');
+  formData.append('text', 'Test body');
+  formData.append('headers', 'Message-ID: <test@example.com>');
+
+  const email = parseIncomingEmail(formData);
+
+  // Should work fine with plain email addresses
+  assertEquals(email.from, 'user@example.com');
+  assertEquals(email.to, 'assistant@example.com');
+});
+
+Deno.test('parseIncomingEmail - handles email in angle brackets without display name', () => {
+  const formData = new FormData();
+  formData.append('from', '<user@example.com>');
+  formData.append('to', '<assistant@example.com>');
+  formData.append('subject', 'Test');
+  formData.append('text', 'Test body');
+  formData.append('headers', 'Message-ID: <test@example.com>');
+
+  const email = parseIncomingEmail(formData);
+
+  // Should extract email from angle brackets
+  assertEquals(email.from, 'user@example.com');
+  assertEquals(email.to, 'assistant@example.com');
+});
