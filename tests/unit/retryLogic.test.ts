@@ -1,0 +1,93 @@
+import { assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { withRetry, DEFAULT_RETRY_CONFIG } from '../../supabase/functions/email-webhook/retryLogic.ts';
+
+Deno.test('withRetry - succeeds on first attempt', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    return 'success';
+  };
+
+  const result = await withRetry(fn);
+
+  assertEquals(result, 'success');
+  assertEquals(attempts, 1);
+});
+
+Deno.test('withRetry - succeeds on second attempt after retryable error', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    if (attempts === 1) {
+      throw new Response('Server Error', { status: 500 });
+    }
+    return 'success';
+  };
+
+  const result = await withRetry(fn);
+
+  assertEquals(result, 'success');
+  assertEquals(attempts, 2);
+});
+
+Deno.test('withRetry - retries on 429 rate limit', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    if (attempts < 3) {
+      throw new Response('Rate Limited', { status: 429 });
+    }
+    return 'success';
+  };
+
+  const result = await withRetry(fn);
+
+  assertEquals(result, 'success');
+  assertEquals(attempts, 3);
+});
+
+Deno.test('withRetry - does not retry on 401 auth error', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    throw new Response('Unauthorized', { status: 401 });
+  };
+
+  await assertRejects(
+    async () => await withRetry(fn),
+    Response,
+  );
+
+  assertEquals(attempts, 1); // Should not retry
+});
+
+Deno.test('withRetry - does not retry on 400 bad request', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    throw new Response('Bad Request', { status: 400 });
+  };
+
+  await assertRejects(
+    async () => await withRetry(fn),
+    Response,
+  );
+
+  assertEquals(attempts, 1); // Should not retry
+});
+
+Deno.test('withRetry - exhausts all retries and throws last error', async () => {
+  let attempts = 0;
+  const fn = async () => {
+    attempts++;
+    throw new Response('Server Error', { status: 500 });
+  };
+
+  await assertRejects(
+    async () => await withRetry(fn),
+    Response,
+  );
+
+  assertEquals(attempts, DEFAULT_RETRY_CONFIG.maxAttempts);
+});
+

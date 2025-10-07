@@ -1,0 +1,7 @@
+# Supabase Configuration
+
+[functions.email-webhook]
+# Allow public access (no JWT verification required)
+# Required for webhooks from external services like SendGrid
+verify_jwt = false
+
