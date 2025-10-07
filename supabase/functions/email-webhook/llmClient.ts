@@ -33,7 +33,7 @@ export const formatEmailInput = (email: IncomingEmail): string => {
   input += `From: ${email.from}\n`;
   input += `Subject: ${email.subject}\n\n`;
   input += email.body;
-  
+
   return input;
 };
 
@@ -110,7 +110,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     const completionTime = Date.now() - startTime;
 
     // Check if web search was used (tools_used may not be in response type yet)
-    const usedWebSearch = (response as { tools_used?: Array<{ type: string }> }).tools_used?.some((tool) => 
+    const usedWebSearch = (response as { tools_used?: Array<{ type: string }> }).tools_used?.some((tool) =>
       tool.type === 'web_search_preview' || tool.type === 'web_search'
     ) || false;
 

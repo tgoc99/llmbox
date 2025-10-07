@@ -84,7 +84,7 @@ export interface OutgoingEmail {
  * Note: SendGrid Send API request/response structures are now handled
  * by the official @sendgrid/mail library (npm:@sendgrid/mail@8.1.6)
  * No custom interfaces needed for SendGrid API interactions
- * 
+ *
  * Note: OpenAI API structures are handled by npm:openai@6.2.0
  * Using Responses API for simpler interface with built-in web search
  */
