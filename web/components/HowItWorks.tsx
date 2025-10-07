@@ -48,7 +48,7 @@ const HowItWorks = (): JSX.Element => {
             {steps.map((step, index) => (
               <div key={step.number} className="relative">
                 <StepCard step={step} />
-                
+
                 {/* Arrow connector (desktop only) */}
                 {index < steps.length - 1 && (
                   <div className="hidden lg:flex absolute top-1/3 -right-4 transform translate-x-1/2 items-center justify-center w-8 h-8 text-primary-400 z-10">
@@ -64,7 +64,7 @@ const HowItWorks = (): JSX.Element => {
         <div className="max-w-4xl mx-auto mt-16">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <h3 className="text-2xl font-bold mb-6 text-center">Example Conversation</h3>
-            
+
             <div className="space-y-6">
               {/* User Email */}
               <div className="flex items-start gap-4">

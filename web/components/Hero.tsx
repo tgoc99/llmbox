@@ -36,14 +36,14 @@ const Hero = (): JSX.Element => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <a 
-              href="#how-it-works" 
+            <a
+              href="#how-it-works"
               className="btn-primary w-full sm:w-auto"
             >
               Get Started
             </a>
-            <a 
-              href="#features" 
+            <a
+              href="#features"
               className="btn-secondary w-full sm:w-auto"
             >
               Learn More
