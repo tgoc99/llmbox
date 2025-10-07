@@ -12,7 +12,7 @@ const HomePage = (): JSX.Element => {
       <Features />
       <HowItWorks />
       <CTA />
-      
+
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="container-custom">
@@ -21,7 +21,7 @@ const HomePage = (): JSX.Element => {
               <div className="text-xl font-bold text-white mb-2">LLMBox</div>
               <p className="text-sm">Chat with AI through email</p>
             </div>
-            
+
             <div className="flex flex-wrap justify-center gap-6 text-sm">
               <a href="#features" className="hover:text-white transition-colors">
                 Features
@@ -29,17 +29,17 @@ const HomePage = (): JSX.Element => {
               <a href="#how-it-works" className="hover:text-white transition-colors">
                 How It Works
               </a>
-              <a 
-                href="https://github.com/yourusername/llmbox" 
-                target="_blank" 
+              <a
+                href="https://github.com/yourusername/llmbox"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white transition-colors"
               >
                 Documentation
               </a>
-              <a 
-                href="https://github.com/yourusername/llmbox" 
-                target="_blank" 
+              <a
+                href="https://github.com/yourusername/llmbox"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white transition-colors"
               >
@@ -47,7 +47,7 @@ const HomePage = (): JSX.Element => {
               </a>
             </div>
           </div>
-          
+
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm">
             <p>&copy; {new Date().getFullYear()} LLMBox. Powered by OpenAI and Supabase.</p>
           </div>
