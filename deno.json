@@ -31,7 +31,7 @@
     "logs": "echo '\n⚠️  View logs in Supabase Dashboard:\n   https://supabase.com/dashboard/project/nopocimtfthppwssohty/logs/edge-functions\n\nOr use: supabase functions logs email-webhook\n'",
     "logs:tail": "echo '\n⚠️  View logs in Supabase Dashboard:\n   https://supabase.com/dashboard/project/nopocimtfthppwssohty/logs/edge-functions\n\nOr use: supabase functions logs email-webhook\n'",
     "test:endpoint": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: application/json' -d '{}'",
-    "test:webhook": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: multipart/form-data' -F 'from=test@example.com' -F 'to=test@email.yourdomain.com' -F 'subject=Test Email' -F 'text=Hello, can you help me with something?' -F 'headers={\"Message-ID\": \"<test123@example.com>\"}'",
+    "test:webhook": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: multipart/form-data' -F 'from=tgoc99@gmail.com' -F 'to=mail@llmbox.pro' -F 'subject=Test Email' -F 'text=Hello, can you help me with something?' -F 'headers={\"Message-ID\": \"<tgoc99@gmail.com>\"}'",
     "secrets:set": "echo '\n⚠️  Usage: deno task secrets:set:key KEY=value\n\nExamples:\n  deno task secrets:set:key SENDGRID_API_KEY=SG.xxx\n  deno task secrets:set:key OPENAI_API_KEY=sk-xxx\n'",
     "secrets:set:key": "supabase secrets set --project-ref nopocimtfthppwssohty",
     "secrets:list": "supabase secrets list --project-ref nopocimtfthppwssohty",

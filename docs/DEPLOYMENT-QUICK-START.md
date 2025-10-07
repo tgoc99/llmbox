@@ -40,6 +40,7 @@
    Subdomain: email
    Domain: yourdomain.com
    URL: https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
+   Send Raw: ❌ Disabled (must use parsed format)
 
 3. Wait 24-48 hours for DNS propagation
 ```

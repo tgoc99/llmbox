@@ -28,7 +28,7 @@ const createTestEmail = (overrides?: Partial<IncomingEmail>): IncomingEmail => {
     to: 'assistant@yourdomain.com',
     subject: 'Test Email for Integration',
     body: 'Hello! This is a test email. Please respond with a brief greeting.',
-    messageId: '<test-integration@llmbox.local>',
+    messageId: '<test-integration@llmbox.pro>',
     inReplyTo: null,
     references: [],
     timestamp: new Date(),
@@ -104,9 +104,9 @@ Deno.test({
       to: 'assistant@yourdomain.com',
       subject: 'Re: Previous conversation',
       body: 'Thanks for the previous response. Can you clarify your last point?',
-      messageId: '<reply-test@llmbox.local>',
-      inReplyTo: '<original@llmbox.local>',
-      references: ['<original@llmbox.local>'],
+      messageId: '<reply-test@llmbox.pro>',
+      inReplyTo: '<original@llmbox.pro>',
+      references: ['<original@llmbox.pro>'],
       timestamp: new Date(),
     };
 
@@ -171,7 +171,7 @@ Deno.test({
       to: 'assistant@yourdomain.com',
       subject: 'Hi',
       body: 'Hello!',
-      messageId: '<short-test@llmbox.local>',
+      messageId: '<short-test@llmbox.pro>',
       inReplyTo: null,
       references: [],
       timestamp: new Date(),
@@ -194,7 +194,7 @@ Deno.test({
         'Specifically, I would like to understand how the system works, ' +
         'what features are available, and what the pricing model looks like. ' +
         'Can you provide comprehensive information about all of these topics?',
-      messageId: '<long-test@llmbox.local>',
+      messageId: '<long-test@llmbox.pro>',
       inReplyTo: null,
       references: [],
       timestamp: new Date(),
@@ -226,7 +226,7 @@ Deno.test({
     const testEmail = createTestEmail({
       subject: 'How to integrate your API?',
       body: 'Hi, I\'m trying to integrate your API into my application. Can you provide me with the basic steps to get started? I\'m using Node.js.',
-      messageId: '<tech-support@llmbox.local>',
+      messageId: '<tech-support@llmbox.pro>',
     });
 
     // Act
@@ -261,7 +261,7 @@ Deno.test({
     const testEmail = createTestEmail({
       subject: 'Pricing and plans',
       body: 'Hello, I\'m interested in your service for my company. Can you tell me about your pricing plans and what features are included?',
-      messageId: '<business@llmbox.local>',
+      messageId: '<business@llmbox.pro>',
     });
 
     // Act
@@ -290,7 +290,7 @@ Deno.test({
     const testEmail = createTestEmail({
       subject: 'Issue with recent service',
       body: 'I\'ve been having problems with your service today. The system keeps timing out and I can\'t complete my work. This is very frustrating!',
-      messageId: '<complaint@llmbox.local>',
+      messageId: '<complaint@llmbox.pro>',
     });
 
     // Act
@@ -300,15 +300,15 @@ Deno.test({
     assertExists(response.content);
     assert(response.content.length > 40, 'Complaint response should be empathetic and detailed');
     assert(response.tokenCount > 20, 'Response should use reasonable tokens');
-    
+
     // Check for professional tone markers
     const lowerContent = response.content.toLowerCase();
-    const hasProfessionalTone = 
-      lowerContent.includes('sorry') || 
+    const hasProfessionalTone =
+      lowerContent.includes('sorry') ||
       lowerContent.includes('apologize') ||
       lowerContent.includes('understand') ||
       lowerContent.includes('help');
-    
+
     assert(hasProfessionalTone, 'Response should have empathetic/professional tone');
 
     console.log('✅ OpenAI API complaint handling test passed');
@@ -342,7 +342,7 @@ Thanks in advance for your help!
 
 Best regards,
 John`,
-      messageId: '<multi-question@llmbox.local>',
+      messageId: '<multi-question@llmbox.pro>',
     });
 
     // Act
@@ -352,7 +352,7 @@ John`,
     assertExists(response.content);
     assert(response.content.length > 100, 'Response to multi-paragraph email should be comprehensive');
     assert(response.tokenCount > 50, 'Should use significant tokens for detailed response');
-    
+
     console.log('✅ OpenAI API multi-paragraph test passed');
     console.log(`   Input length: ${testEmail.body.length} chars`);
     console.log(`   Response length: ${response.content.length} chars`);
@@ -411,7 +411,7 @@ Deno.test({
     const testEmail = createTestEmail({
       subject: 'Test with émojis & spëcial çhars',
       body: 'Hello! 🎉 I have a question about pricing: $100-$200/month? Also, what about 50% discounts & other deals? Let me know! 😊',
-      messageId: '<special-chars@llmbox.local>',
+      messageId: '<special-chars@llmbox.pro>',
     });
 
     // Act
@@ -440,7 +440,7 @@ Deno.test({
     const testEmail = createTestEmail({
       subject: 'Simple question',
       body: 'What are your service hours?',
-      messageId: '<consistency-test@llmbox.local>',
+      messageId: '<consistency-test@llmbox.pro>',
     });
 
     // Act - Call API twice
@@ -453,9 +453,9 @@ Deno.test({
     assert(response1.content.length > 10);
     assert(response2.content.length > 10);
     assert(response1.model === response2.model, 'Should use same model');
-    
+
     // Responses should be similar in length (within 3x factor)
-    const lengthRatio = Math.max(response1.content.length, response2.content.length) / 
+    const lengthRatio = Math.max(response1.content.length, response2.content.length) /
                         Math.min(response1.content.length, response2.content.length);
     assert(lengthRatio < 3, 'Response lengths should be relatively consistent');
 

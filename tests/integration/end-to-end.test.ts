@@ -1,15 +1,15 @@
 /**
  * End-to-End Integration Test
- * 
+ *
  * Tests the complete workflow: receive email -> generate AI response -> send reply
  * This test makes real API calls to both OpenAI and SendGrid
- * 
+ *
  * Required environment variables:
  * - OPENAI_API_KEY
  * - SENDGRID_API_KEY
  * - SERVICE_EMAIL_ADDRESS
  * - TEST_RECIPIENT_EMAIL (optional)
- * 
+ *
  * Run with: deno test tests/integration/end-to-end.test.ts --allow-all --allow-env
  */
 
@@ -25,7 +25,7 @@ const hasAllCredentials = (): boolean => {
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
   const serviceEmail = Deno.env.get('SERVICE_EMAIL_ADDRESS');
-  
+
   return openaiKey !== undefined && openaiKey.length > 0 &&
          sendgridKey !== undefined && sendgridKey.length > 0 &&
          serviceEmail !== undefined && serviceEmail.length > 0;
@@ -35,8 +35,8 @@ const hasAllCredentials = (): boolean => {
  * Get test recipient email
  */
 const getTestRecipient = (): string => {
-  return Deno.env.get('TEST_RECIPIENT_EMAIL') || 
-         Deno.env.get('SERVICE_EMAIL_ADDRESS') || 
+  return Deno.env.get('TEST_RECIPIENT_EMAIL') ||
+         Deno.env.get('SERVICE_EMAIL_ADDRESS') ||
          'test@example.com';
 };
 
@@ -156,7 +156,7 @@ Deno.test({
     // Act - Complete workflow
     const llmResponse = await generateResponse(incomingEmail);
     const outgoingEmail = formatOutgoingEmail(incomingEmail, llmResponse);
-    
+
     let error: Error | null = null;
     try {
       await sendEmail(outgoingEmail);
@@ -194,7 +194,7 @@ Deno.test({
     // Act - Complete workflow
     const llmResponse = await generateResponse(incomingEmail);
     const outgoingEmail = formatOutgoingEmail(incomingEmail, llmResponse);
-    
+
     let error: Error | null = null;
     try {
       await sendEmail(outgoingEmail);
@@ -204,14 +204,14 @@ Deno.test({
 
     // Assert
     assertEquals(error, null);
-    
+
     // Check for empathetic tone
     const lowerContent = llmResponse.content.toLowerCase();
-    const hasEmpathy = 
-      lowerContent.includes('sorry') || 
+    const hasEmpathy =
+      lowerContent.includes('sorry') ||
       lowerContent.includes('apologize') ||
       lowerContent.includes('understand');
-    
+
     assert(hasEmpathy, 'Response should show empathy');
 
     console.log('✅ Complaint handling workflow completed');
@@ -246,7 +246,7 @@ Deno.test({
     // Act - Complete workflow
     const llmResponse = await generateResponse(incomingEmail);
     const outgoingEmail = formatOutgoingEmail(incomingEmail, llmResponse);
-    
+
     let error: Error | null = null;
     try {
       await sendEmail(outgoingEmail);
@@ -289,7 +289,7 @@ Deno.test({
     // Act - Complete workflow
     const llmResponse = await generateResponse(incomingEmail);
     const outgoingEmail = formatOutgoingEmail(incomingEmail, llmResponse);
-    
+
     let error: Error | null = null;
     try {
       await sendEmail(outgoingEmail);
@@ -414,7 +414,7 @@ Technical Director`;
     // Act - Complete workflow
     const llmResponse = await generateResponse(incomingEmail);
     const outgoingEmail = formatOutgoingEmail(incomingEmail, llmResponse);
-    
+
     let error: Error | null = null;
     try {
       await sendEmail(outgoingEmail);

@@ -40,19 +40,19 @@ print_header() {
 # Check if environment variables are set
 check_env_vars() {
     local missing_vars=()
-    
+
     if [[ -z "${OPENAI_API_KEY}" ]]; then
         missing_vars+=("OPENAI_API_KEY")
     fi
-    
+
     if [[ -z "${SENDGRID_API_KEY}" ]]; then
         missing_vars+=("SENDGRID_API_KEY")
     fi
-    
+
     if [[ -z "${SERVICE_EMAIL_ADDRESS}" ]]; then
         missing_vars+=("SERVICE_EMAIL_ADDRESS")
     fi
-    
+
     if [ ${#missing_vars[@]} -gt 0 ]; then
         print_warning "Some environment variables are not set:"
         for var in "${missing_vars[@]}"; do
@@ -71,7 +71,7 @@ check_env_vars() {
 # Display current configuration
 show_config() {
     print_header "Current Configuration"
-    
+
     if [[ -n "${OPENAI_API_KEY}" ]]; then
         echo "✓ OPENAI_API_KEY: ${OPENAI_API_KEY:0:8}...${OPENAI_API_KEY: -4}"
         echo "  Model: ${OPENAI_MODEL:-gpt-4o-mini (default)}"
@@ -81,30 +81,30 @@ show_config() {
     else
         echo "✗ OPENAI_API_KEY: not set"
     fi
-    
+
     echo ""
-    
+
     if [[ -n "${SENDGRID_API_KEY}" ]]; then
         echo "✓ SENDGRID_API_KEY: ${SENDGRID_API_KEY:0:8}...${SENDGRID_API_KEY: -4}"
         echo "  Timeout: ${SENDGRID_TIMEOUT_MS:-10000 (default)}ms"
     else
         echo "✗ SENDGRID_API_KEY: not set"
     fi
-    
+
     echo ""
-    
+
     if [[ -n "${SERVICE_EMAIL_ADDRESS}" ]]; then
         echo "✓ SERVICE_EMAIL_ADDRESS: ${SERVICE_EMAIL_ADDRESS}"
     else
         echo "✗ SERVICE_EMAIL_ADDRESS: not set"
     fi
-    
+
     if [[ -n "${TEST_RECIPIENT_EMAIL}" ]]; then
         echo "✓ TEST_RECIPIENT_EMAIL: ${TEST_RECIPIENT_EMAIL}"
     else
         echo "  TEST_RECIPIENT_EMAIL: not set (will use SERVICE_EMAIL_ADDRESS)"
     fi
-    
+
     echo ""
 }
 
@@ -112,7 +112,7 @@ show_config() {
 run_tests() {
     local test_file=$1
     local test_name=$2
-    
+
     if [[ -n "$test_file" ]]; then
         print_info "Running: $test_file"
         deno test "$test_file" --allow-all --allow-env
@@ -208,7 +208,7 @@ else
     while true; do
         show_menu
         read -p "Enter your choice [0-6]: " choice
-        
+
         case $choice in
             1)
                 print_header "Running All Integration Tests"
@@ -267,7 +267,7 @@ else
                 sleep 1
                 ;;
         esac
-        
+
         clear
     done
 fi

@@ -29,7 +29,7 @@ $ curl -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webho
   -F 'text=Hello, this is a test.'
 
 Response: HTTP/2 200
-{"status":"success","messageId":"<1759859838327@llmbox.local>"}
+{"status":"success","messageId":"<1759859838327@llmbox.pro>"}
 ```
 
 ✅ **SUCCESS!**

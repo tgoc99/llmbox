@@ -80,6 +80,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
   logInfo('sendgrid_send_started', {
     messageId: email.inReplyTo,
     to: email.to,
+    from: email.from,
     subject: email.subject,
   });
 
@@ -116,7 +117,9 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
                 sendgridMessageId: messageId,
               });
             }
-            return res;
+            // Consume the response body to prevent resource leaks
+            await res.text();
+            return;
           }
 
           // Handle different error status codes

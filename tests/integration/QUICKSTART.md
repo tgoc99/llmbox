@@ -122,7 +122,7 @@ echo $SERVICE_EMAIL_ADDRESS  # Should show your email
 ### OpenAI 401 Error
 **Problem**: `openai_auth_error` or authentication failure
 
-**Fix**: 
+**Fix**:
 1. Check your API key is correct
 2. Verify you have credits: https://platform.openai.com/account/usage
 3. Try a new API key

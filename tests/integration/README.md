@@ -178,7 +178,7 @@ Some tests include performance tracking:
 
 **Problem**: Tests show as skipped with warning messages
 
-**Solution**: 
+**Solution**:
 1. Check that all required environment variables are set
 2. Verify API keys are valid and not expired
 3. Ensure no extra spaces or quotes in environment variables

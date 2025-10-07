@@ -202,7 +202,7 @@ https://llmbox-abc123.vercel.app
 
 1. In Vercel dashboard, go to your project
 2. Click **Settings** → **Domains**
-3. Add your custom domain (e.g., `llmbox.com`)
+3. Add your custom domain (e.g., `llmbox.pro`)
 4. Follow DNS configuration instructions (see [Custom Domain Setup](#custom-domain-setup))
 
 ### Step 7: Enable Automatic Deployments
@@ -295,7 +295,7 @@ Popular registrars:
 - [GoDaddy](https://www.godaddy.com) - Popular, more expensive
 
 **Recommended domain for this project:**
-- `llmbox.com`
+- `llmbox.pro`
 - `yourdomain.com` (match your email)
 - `ai-email.com`
 

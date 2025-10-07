@@ -297,7 +297,7 @@ After running tests:
 ### OpenAI 401 Error
 **Fix**: Verify API key and check account credits
 
-### SendGrid 401 Error  
+### SendGrid 401 Error
 **Fix**: Verify API key has "Mail Send" permission
 
 ### Emails Not Arriving
@@ -360,7 +360,7 @@ The tests are production-ready and can be integrated into your development workf
 
 ---
 
-**For quick start:** See [QUICKSTART.md](./QUICKSTART.md)  
-**For full details:** See [README.md](./README.md)  
+**For quick start:** See [QUICKSTART.md](./QUICKSTART.md)
+**For full details:** See [README.md](./README.md)
 **For running tests:** Use `./scripts/run-integration-tests.sh` or `deno task test:integration`
 

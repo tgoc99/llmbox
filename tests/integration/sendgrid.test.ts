@@ -2,19 +2,19 @@
  * Integration test with real SendGrid API
  * Note: This test requires SENDGRID_API_KEY and SERVICE_EMAIL_ADDRESS to be set
  * Note: This test sends real emails to the configured test recipient
- * 
+ *
  * Run with: deno test tests/integration/sendgrid.test.ts --allow-all --allow-env
  */
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { 
-  sendEmail, 
-  formatOutgoingEmail 
+import {
+  sendEmail,
+  formatOutgoingEmail
 } from '../../supabase/functions/email-webhook/emailSender.ts';
-import type { 
-  OutgoingEmail, 
-  IncomingEmail, 
-  LLMResponse 
+import type {
+  OutgoingEmail,
+  IncomingEmail,
+  LLMResponse
 } from '../../supabase/functions/email-webhook/types.ts';
 
 /**
@@ -23,7 +23,7 @@ import type {
 const hasCredentials = (): boolean => {
   const apiKey = Deno.env.get('SENDGRID_API_KEY');
   const serviceEmail = Deno.env.get('SERVICE_EMAIL_ADDRESS');
-  return apiKey !== undefined && apiKey.length > 0 && 
+  return apiKey !== undefined && apiKey.length > 0 &&
          serviceEmail !== undefined && serviceEmail.length > 0;
 };
 
@@ -31,8 +31,8 @@ const hasCredentials = (): boolean => {
  * Get test recipient email (defaults to service email if not specified)
  */
 const getTestRecipient = (): string => {
-  return Deno.env.get('TEST_RECIPIENT_EMAIL') || 
-         Deno.env.get('SERVICE_EMAIL_ADDRESS') || 
+  return Deno.env.get('TEST_RECIPIENT_EMAIL') ||
+         Deno.env.get('SERVICE_EMAIL_ADDRESS') ||
          'test@example.com';
 };
 
@@ -42,7 +42,7 @@ const getTestRecipient = (): string => {
 const createTestEmail = (overrides?: Partial<OutgoingEmail>): OutgoingEmail => {
   const serviceEmail = Deno.env.get('SERVICE_EMAIL_ADDRESS') || 'test@example.com';
   const testRecipient = getTestRecipient();
-  
+
   return {
     from: serviceEmail,
     to: testRecipient,

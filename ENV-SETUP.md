@@ -166,7 +166,7 @@ deno task test:integration
    ```bash
    # If using .env file:
    ./scripts/load-env.sh deno task test:integration
-   
+
    # If using shell profile:
    deno task test:integration
    ```
@@ -265,7 +265,7 @@ echo $SENDGRID_API_KEY  # Check the value
    ```bash
    # Add to ~/.zshrc:
    alias test:integration="./scripts/load-env.sh deno task test:integration"
-   
+
    # Then just run:
    test:integration
    ```
