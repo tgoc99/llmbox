@@ -7,12 +7,14 @@ A serverless email-based chat service that receives emails via SendGrid, generat
 This service allows users to interact with an AI assistant via email. Users send emails to a configured address, the system processes the email content through OpenAI's GPT models, and sends an intelligent response back to the user's inbox.
 
 **Key Features:**
-- Receive emails via SendGrid Inbound Parse webhook
-- Generate intelligent responses using OpenAI API (GPT-3.5-turbo or GPT-4)
-- Send responses via SendGrid Send API
-- Email threading support (maintains conversation context)
-- Comprehensive error handling and logging
-- Serverless architecture using Supabase Edge Functions
+- 📧 Receive emails via SendGrid Inbound Parse webhook
+- 🤖 Generate intelligent responses using OpenAI Responses API (GPT-4o-mini or GPT-4o)
+- 🌐 **Built-in web search** - LLM can fetch real-time information from the web
+- 📤 Send responses via SendGrid Send API
+- 🔗 Email threading support (maintains conversation context)
+- 🛡️ Comprehensive error handling and logging
+- ⚡ Serverless architecture using Supabase Edge Functions
+- 📚 Official OpenAI Node.js library integration
 
 ## Prerequisites
 
@@ -129,8 +131,9 @@ https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
 3. Create a new API key
 4. Copy the API key and add it to your `.env.local` file
 5. Choose your model:
-   - `gpt-3.5-turbo` - Faster, more cost-effective (recommended for MVP)
-   - `gpt-4` - Higher quality, slower, more expensive
+   - `gpt-4o-mini` - Fast, cost-effective, supports web search (recommended)
+   - `gpt-4o` - Higher quality, supports web search, more expensive
+6. Web search is **enabled by default** - set `ENABLE_WEB_SEARCH=false` to disable
 
 ## Local Development
 

@@ -7,6 +7,7 @@
     "jsr:@std/testing@*": "1.0.16",
     "jsr:@supabase/functions-js@*": "2.5.0",
     "npm:@sendgrid/mail@8.1.6": "8.1.6",
+    "npm:openai@6.2.0": "6.2.0",
     "npm:openai@^4.52.5": "4.104.0",
     "npm:supabase@*": "2.48.3",
     "npm:supabase@2.48.3": "2.48.3"
@@ -30,7 +31,7 @@
     "@supabase/functions-js@2.5.0": {
       "integrity": "c48e3fc5da1510ce6dab34af3fc49cd637ea7b721d92faffd0545cbdcc548430",
       "dependencies": [
-        "npm:openai"
+        "npm:openai@^4.52.5"
       ]
     }
   },
@@ -333,6 +334,10 @@
         "formdata-node",
         "node-fetch@2.7.0"
       ],
+      "bin": true
+    },
+    "openai@6.2.0": {
+      "integrity": "sha512-qqjzHls7F5xkXNGy9P1Ei1rorI5LWupUUFWP66zPU8FlZbiITX8SFcHMKNZg/NATJ0LpIZcMUFxSwQmdeQPwSw==",
       "bin": true
     },
     "proc-log@5.0.0": {

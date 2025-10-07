@@ -1,8 +1,8 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { formatPrompt } from '../../supabase/functions/email-webhook/llmClient.ts';
+import { formatEmailInput } from '../../supabase/functions/email-webhook/llmClient.ts';
 import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
 
-Deno.test('formatPrompt - creates correct format with email data', () => {
+Deno.test('formatEmailInput - creates correct format with email data', () => {
   const email: IncomingEmail = {
     from: 'user@example.com',
     to: 'assistant@yourdomain.com',
@@ -14,15 +14,15 @@ Deno.test('formatPrompt - creates correct format with email data', () => {
     timestamp: new Date(),
   };
 
-  const prompt = formatPrompt(email);
+  const input = formatEmailInput(email);
 
-  assertEquals(prompt.includes('Respond to this email:'), true);
-  assertEquals(prompt.includes('From: user@example.com'), true);
-  assertEquals(prompt.includes('Subject: Test Subject'), true);
-  assertEquals(prompt.includes('This is the email body.'), true);
+  assertEquals(input.includes('Respond to this email:'), true);
+  assertEquals(input.includes('From: user@example.com'), true);
+  assertEquals(input.includes('Subject: Test Subject'), true);
+  assertEquals(input.includes('This is the email body.'), true);
 });
 
-Deno.test('formatPrompt - includes all email fields', () => {
+Deno.test('formatEmailInput - includes all email fields', () => {
   const email: IncomingEmail = {
     from: 'sender@example.com',
     to: 'receiver@example.com',
@@ -34,15 +34,15 @@ Deno.test('formatPrompt - includes all email fields', () => {
     timestamp: new Date(),
   };
 
-  const prompt = formatPrompt(email);
+  const input = formatEmailInput(email);
 
-  assertExists(prompt);
-  assertEquals(prompt.includes('sender@example.com'), true);
-  assertEquals(prompt.includes('Important Question'), true);
-  assertEquals(prompt.includes('Hello, I have a question'), true);
+  assertExists(input);
+  assertEquals(input.includes('sender@example.com'), true);
+  assertEquals(input.includes('Important Question'), true);
+  assertEquals(input.includes('Hello, I have a question'), true);
 });
 
-Deno.test('formatPrompt - handles empty body', () => {
+Deno.test('formatEmailInput - handles empty body', () => {
   const email: IncomingEmail = {
     from: 'user@example.com',
     to: 'assistant@yourdomain.com',
@@ -54,10 +54,10 @@ Deno.test('formatPrompt - handles empty body', () => {
     timestamp: new Date(),
   };
 
-  const prompt = formatPrompt(email);
+  const input = formatEmailInput(email);
 
-  assertExists(prompt);
-  assertEquals(prompt.includes('From: user@example.com'), true);
-  assertEquals(prompt.includes('Subject: Empty Email'), true);
+  assertExists(input);
+  assertEquals(input.includes('From: user@example.com'), true);
+  assertEquals(input.includes('Subject: Empty Email'), true);
 });
 

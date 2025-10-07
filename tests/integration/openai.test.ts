@@ -8,7 +8,7 @@
  */
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { generateResponse, formatPrompt } from '../../supabase/functions/email-webhook/llmClient.ts';
+import { generateResponse, formatEmailInput } from '../../supabase/functions/email-webhook/llmClient.ts';
 import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
 
 /**
@@ -361,7 +361,7 @@ John`,
 });
 
 Deno.test({
-  name: 'OpenAI integration - validates prompt formatting',
+  name: 'OpenAI integration - validates input formatting',
   ignore: !hasApiKey(),
   async fn() {
     if (!hasApiKey()) {
@@ -376,15 +376,15 @@ Deno.test({
       body: 'What is your business hours?',
     });
 
-    // Act - Test prompt formatting
-    const prompt = formatPrompt(testEmail);
+    // Act - Test input formatting
+    const input = formatEmailInput(testEmail);
 
-    // Assert - Prompt structure
-    assertExists(prompt);
-    assert(prompt.includes('Respond to this email:'), 'Prompt should have instruction');
-    assert(prompt.includes(testEmail.from), 'Prompt should include sender');
-    assert(prompt.includes(testEmail.subject), 'Prompt should include subject');
-    assert(prompt.includes(testEmail.body), 'Prompt should include body');
+    // Assert - Input structure
+    assertExists(input);
+    assert(input.includes('Respond to this email:'), 'Input should have instruction');
+    assert(input.includes(testEmail.from), 'Input should include sender');
+    assert(input.includes(testEmail.subject), 'Input should include subject');
+    assert(input.includes(testEmail.body), 'Input should include body');
 
     // Act - Generate actual response
     const response = await generateResponse(testEmail);
@@ -393,8 +393,8 @@ Deno.test({
     assertExists(response.content);
     assert(response.content.length > 10);
 
-    console.log('✅ OpenAI API prompt formatting test passed');
-    console.log(`   Prompt length: ${prompt.length} chars`);
+    console.log('✅ OpenAI API input formatting test passed');
+    console.log(`   Input length: ${input.length} chars`);
   },
 });
 

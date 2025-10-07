@@ -61,6 +61,11 @@ export const config = {
     return parseFloat(getEnvVar('OPENAI_TEMPERATURE', false, '0.7'));
   },
 
+  /** Enable web search tool for OpenAI (default: true) */
+  get enableWebSearch(): boolean {
+    return getEnvVar('ENABLE_WEB_SEARCH', false, 'true').toLowerCase() === 'true';
+  },
+
   /** Service email address for outbound emails */
   get serviceEmailAddress(): string {
     return getEnvVar('SERVICE_EMAIL_ADDRESS', false);
