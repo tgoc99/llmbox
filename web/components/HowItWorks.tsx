@@ -90,9 +90,9 @@ const HowItWorks = (): JSX.Element => {
                   <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
                     <div className="text-xs text-primary-600 font-medium mb-1">From: AI Assistant</div>
                     <p className="text-gray-800">
-                      I'd be happy to help you craft a polite decline. Here's a professional template you can customize:
+                      I&apos;d be happy to help you craft a polite decline. Here&apos;s a professional template you can customize:
                       <br /><br />
-                      "Thank you for the invitation. Unfortunately, I have a prior commitment at that time and won't be able to attend. I appreciate you thinking of me, and I hope we can find another opportunity to connect soon."
+                      &quot;Thank you for the invitation. Unfortunately, I have a prior commitment at that time and won&apos;t be able to attend. I appreciate you thinking of me, and I hope we can find another opportunity to connect soon.&quot;
                       <br /><br />
                       Feel free to adjust the wording to match your personal style!
                     </p>

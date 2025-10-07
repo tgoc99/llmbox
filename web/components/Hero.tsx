@@ -68,7 +68,7 @@ const Hero = (): JSX.Element => {
               </div>
               <div className="pl-13">
                 <p className="text-sm text-subtle italic">
-                  "Can you help me brainstorm ideas for my project?"
+                  &quot;Can you help me brainstorm ideas for my project?&quot;
                 </p>
               </div>
             </div>
