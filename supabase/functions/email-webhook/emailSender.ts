@@ -1,17 +1,19 @@
 /**
- * Email sender module for SendGrid Send API
+ * Email sender module using official SendGrid library
  * Handles formatting and sending outbound emails
  */
 
+import sgMail from 'npm:@sendgrid/mail@8.1.6';
 import { config } from './config.ts';
-import { logCritical, logError, logInfo, logWarn } from './logger.ts';
-import { withRetry } from './retryLogic.ts';
+import { logCritical, logError, logInfo } from './logger.ts';
 import type {
   IncomingEmail,
   LLMResponse,
   OutgoingEmail,
-  SendGridEmailRequest,
 } from './types.ts';
+
+// Initialize SendGrid client
+sgMail.setApiKey(config.sendgridApiKey);
 
 /**
  * Ensure message ID is properly formatted with angle brackets
@@ -64,9 +66,9 @@ export const formatOutgoingEmail = (
 };
 
 /**
- * Send email via SendGrid Send API
+ * Send email via SendGrid using official library
  * @param email - Outgoing email to send
- * @throws Error if send fails after retries
+ * @throws Error if send fails
  */
 export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
   // Validate required configuration
@@ -77,11 +79,10 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
     throw new Error('SERVICE_EMAIL_ADDRESS is not configured');
   }
 
-  // Build SendGrid API request body
   // Ensure In-Reply-To is properly formatted with angle brackets
   const inReplyTo = ensureAngleBrackets(email.inReplyTo);
 
-  // Build headers object conditionally based on whether we have threading info
+  // Build headers object for email threading
   const headers: Record<string, string> = {};
 
   if (inReplyTo) {
@@ -93,22 +94,13 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
     headers['References'] = email.references.join(' ');
   }
 
-  const requestBody: SendGridEmailRequest = {
-    personalizations: [
-      {
-        to: [{ email: email.to }],
-        subject: email.subject,
-        // Only include headers if we have any
-        ...(Object.keys(headers).length > 0 ? { headers } : {}),
-      },
-    ],
-    from: { email: email.from },
-    content: [
-      {
-        type: 'text/plain',
-        value: email.body,
-      },
-    ],
+  // Construct message using library's simplified API
+  const msg = {
+    to: email.to,
+    from: email.from,
+    subject: email.subject,
+    text: email.body,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
   };
 
   // Log send started
@@ -117,103 +109,20 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
     to: email.to,
     from: email.from,
     subject: email.subject,
-    body: requestBody
   });
 
   try {
-    // Make API call with retry logic
-    await withRetry(
-      async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          config.sendgridTimeoutMs,
-        );
+    // Send email using SendGrid library (includes built-in retry logic)
+    const response = await sgMail.send(msg);
 
-        try {
-          const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${config.sendgridApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          // Check if response is 202 Accepted
-          if (res.status === 202) {
-            // Log SendGrid message ID if available
-            const messageId = res.headers.get('X-Message-Id');
-            if (messageId) {
-              logInfo('sendgrid_message_id', {
-                messageId: email.inReplyTo,
-                sendgridMessageId: messageId,
-              });
-            }
-            // Consume the response body to prevent resource leaks
-            await res.text();
-            return;
-          }
-
-          // Handle different error status codes
-          const errorBody = await res.text();
-
-          if (res.status === 401 || res.status === 403) {
-            // Auth error - log as CRITICAL (don't retry)
-            logCritical('sendgrid_auth_error', {
-              messageId: email.inReplyTo,
-              statusCode: res.status,
-              error: errorBody,
-            });
-            throw new Error(`SendGrid auth error: ${res.status} - ${errorBody}`);
-          }
-
-          if (res.status === 400) {
-            // Bad request - log as ERROR (don't retry)
-            logError('sendgrid_bad_request', {
-              messageId: email.inReplyTo,
-              statusCode: res.status,
-              error: errorBody,
-              requestBody: JSON.stringify(requestBody),
-            });
-            throw new Error(`SendGrid bad request: ${errorBody}`);
-          }
-
-          if (res.status === 429) {
-            // Rate limit - log as WARN and retry
-            logWarn('sendgrid_rate_limit', {
-              messageId: email.inReplyTo,
-              statusCode: res.status,
-              error: errorBody,
-            });
-            throw new Error(`SendGrid rate limit: ${errorBody}`);
-          }
-
-          // Server errors (500, 502, 503) - retry
-          if (res.status >= 500) {
-            logError('sendgrid_server_error', {
-              messageId: email.inReplyTo,
-              statusCode: res.status,
-              error: errorBody,
-            });
-            throw new Error(`SendGrid server error: ${res.status} - ${errorBody}`);
-          }
-
-          // Other errors
-          throw new Error(`SendGrid API error: ${res.status} - ${errorBody}`);
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      },
-      {
-        maxAttempts: 3,
-        delayMs: 1000,
-        retryableStatusCodes: [429, 500, 502, 503, 504],
-      },
-    );
+    // Extract SendGrid message ID from response headers
+    const sendgridMessageId = response[0]?.headers?.['x-message-id'];
+    if (sendgridMessageId) {
+      logInfo('sendgrid_message_id', {
+        messageId: email.inReplyTo,
+        sendgridMessageId,
+      });
+    }
 
     // Log success
     logInfo('sendgrid_send_completed', {
@@ -221,13 +130,46 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
       to: email.to,
       subject: email.subject,
     });
-  } catch (error) {
-    // Log error with correlation ID and rethrow
-    logError('sendgrid_send_failed', {
-      messageId: email.inReplyTo,
-      to: email.to,
-      error: error instanceof Error ? error.message : String(error),
-    });
+  } catch (error: any) {
+    // Library provides structured error with response details
+    if (error.response) {
+      const statusCode = error.code || error.response?.statusCode;
+      const errorBody = error.response?.body;
+
+      // Auth errors (401, 403) - log as CRITICAL
+      if (statusCode === 401 || statusCode === 403) {
+        logCritical('sendgrid_auth_error', {
+          messageId: email.inReplyTo,
+          statusCode,
+          error: errorBody,
+        });
+      }
+      // Bad request (400) - log as ERROR
+      else if (statusCode === 400) {
+        logError('sendgrid_bad_request', {
+          messageId: email.inReplyTo,
+          statusCode,
+          error: errorBody,
+        });
+      }
+      // Other errors
+      else {
+        logError('sendgrid_send_failed', {
+          messageId: email.inReplyTo,
+          to: email.to,
+          error: error.message,
+          statusCode,
+          errorBody,
+        });
+      }
+    } else {
+      // Network or other errors without response
+      logError('sendgrid_send_failed', {
+        messageId: email.inReplyTo,
+        to: email.to,
+        error: error.message || String(error),
+      });
+    }
     throw error;
   }
 };

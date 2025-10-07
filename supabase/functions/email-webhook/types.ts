@@ -108,29 +108,7 @@ export interface OutgoingEmail {
 }
 
 /**
- * SendGrid Send API request structure
+ * Note: SendGrid Send API request/response structures are now handled
+ * by the official @sendgrid/mail library (npm:@sendgrid/mail@8.1.6)
+ * No custom interfaces needed for SendGrid API interactions
  */
-export interface SendGridEmailRequest {
-  personalizations: Array<{
-    to: Array<{ email: string }>;
-    subject: string;
-    headers?: Record<string, string>;
-  }>;
-  from: { email: string };
-  content: Array<{
-    type: string;
-    value: string;
-  }>;
-}
-
-/**
- * SendGrid Send API response structure
- */
-export interface SendGridEmailResponse {
-  /** HTTP status code */
-  statusCode: number;
-  /** Response body (typically empty on success) */
-  body?: string;
-  /** Response headers */
-  headers?: Record<string, string>;
-}
