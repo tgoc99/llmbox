@@ -1,0 +1,44 @@
+{
+  "fmt": {
+    "options": {
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "tasks": {
+    "deploy": "supabase functions deploy email-webhook --project-ref nopocimtfthppwssohty --no-verify-jwt",
+    "test": "deno test --allow-all tests/",
+    "test:unit": "deno test --allow-all tests/unit/",
+    "test:integration": "deno test --allow-all --allow-env tests/integration/",
+    "test:watch": "deno test --allow-all --watch tests/",
+    "test:coverage": "deno test --allow-all --coverage=coverage tests/",
+    "lint": "deno lint",
+    "lint:fix": "deno lint --fix",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "check": "deno check supabase/functions/email-webhook/index.ts",
+    "check:all": "deno task lint && deno task fmt:check && deno task check && deno task test",
+    "logs": "supabase functions logs email-webhook --project-ref nopocimtfthppwssohty",
+    "logs:tail": "supabase functions logs email-webhook --project-ref nopocimtfthppwssohty --follow",
+    "test:endpoint": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: application/json' -d '{}'",
+    "test:webhook": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: multipart/form-data' -F 'from=test@example.com' -F 'to=test@email.yourdomain.com' -F 'subject=Test Email' -F 'text=Hello, can you help me with something?' -F 'headers={\"Message-ID\": \"<test123@example.com>\"}'",
+    "secrets:set": "echo '\n⚠️  Usage: deno task secrets:set:key KEY=value\n\nExamples:\n  deno task secrets:set:key SENDGRID_API_KEY=SG.xxx\n  deno task secrets:set:key OPENAI_API_KEY=sk-xxx\n'",
+    "secrets:set:key": "supabase secrets set --project-ref nopocimtfthppwssohty",
+    "secrets:list": "supabase secrets list --project-ref nopocimtfthppwssohty",
+    "install:supabase": "echo '\n📦 Installing Supabase CLI...\n' && brew install supabase/tap/supabase && echo '\n✅ Done! Now run: supabase login\n'",
+    "web:install": "cd web && npm install",
+    "web:dev": "cd web && npm run dev",
+    "web:build": "cd web && npm run build",
+    "web:start": "cd web && npm run start",
+    "web:lint": "cd web && npm run lint",
+    "web:type-check": "cd web && npm run type-check",
+    "help": "echo '\n📦 Available tasks:\n\n  Setup:\n    deno task install:supabase Install Supabase CLI (macOS)\n    deno task web:install      Install web dependencies\n\n  Deployment:\n    deno task deploy          Deploy function to Supabase\n    deno task logs            View function logs\n    deno task logs:tail       Tail function logs (live)\n\n  Testing:\n    deno task test            Run all tests\n    deno task test:unit       Run unit tests only\n    deno task test:integration Run integration tests only\n    deno task test:watch      Run tests in watch mode\n    deno task test:coverage   Run tests with coverage\n    deno task test:endpoint   Test if endpoint is live\n    deno task test:webhook    Test webhook with sample data\n\n  Code Quality:\n    deno task lint            Lint code\n    deno task lint:fix        Lint and fix issues\n    deno task fmt             Format code\n    deno task fmt:check       Check formatting\n    deno task check           Type check code\n    deno task check:all       Run all checks + tests\n\n  Web App:\n    deno task web:install     Install web dependencies\n    deno task web:dev         Run web dev server\n    deno task web:build       Build web for production\n    deno task web:start       Start production web server\n    deno task web:lint        Lint web code\n    deno task web:type-check  Type check web code\n\n  Secrets:\n    deno task secrets:list    List all secrets\n    deno task secrets:set:key Set a secret (add KEY=value)\n\n  Help:\n    deno task help            Show this help\n'"
+  }
+}
+

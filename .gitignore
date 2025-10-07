@@ -1,0 +1,41 @@
+# Environment files
+.env.local
+supabase/.env.local
+.env
+
+# Test coverage
+coverage/
+
+# macOS system files
+.DS_Store
+
+# Node modules
+node_modules/
+
+# Next.js
+web/.next/
+web/out/
+web/build/
+web/dist/
+
+# Next.js production build
+web/.vercel
+
+# Package manager lock files
+web/package-lock.json
+web/yarn.lock
+web/pnpm-lock.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Deno cache
+.deno/
