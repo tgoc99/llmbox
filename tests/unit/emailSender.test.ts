@@ -158,6 +158,56 @@ Deno.test('formatOutgoingEmail - References array includes original message ID',
   assertEquals(result.references, ['<msg1@example.com>', '<msg2@example.com>', '<msg3@example.com>']);
 });
 
+Deno.test('formatOutgoingEmail - ensures message IDs have angle brackets', () => {
+  const incomingEmail: IncomingEmail = {
+    from: 'user@example.com',
+    to: 'assistant@mydomain.com',
+    subject: 'Test',
+    body: 'Test body',
+    messageId: 'msg-without-brackets@example.com',
+    inReplyTo: null,
+    references: ['ref1@example.com', '<ref2@example.com>'],
+    timestamp: new Date(),
+  };
+
+  const llmResponse: LLMResponse = {
+    content: 'Test response',
+    model: 'gpt-3.5-turbo',
+    tokenCount: 25,
+    completionTime: 1100,
+  };
+
+  const result = formatOutgoingEmail(incomingEmail, llmResponse);
+
+  // All message IDs should have angle brackets
+  assertEquals(result.references, ['<ref1@example.com>', '<ref2@example.com>', '<msg-without-brackets@example.com>']);
+});
+
+Deno.test('formatOutgoingEmail - filters out empty references', () => {
+  const incomingEmail: IncomingEmail = {
+    from: 'user@example.com',
+    to: 'assistant@mydomain.com',
+    subject: 'Test',
+    body: 'Test body',
+    messageId: '<msg@example.com>',
+    inReplyTo: null,
+    references: ['', '  ', '<valid@example.com>', ''],
+    timestamp: new Date(),
+  };
+
+  const llmResponse: LLMResponse = {
+    content: 'Test response',
+    model: 'gpt-3.5-turbo',
+    tokenCount: 25,
+    completionTime: 1100,
+  };
+
+  const result = formatOutgoingEmail(incomingEmail, llmResponse);
+
+  // Empty strings should be filtered out
+  assertEquals(result.references, ['<valid@example.com>', '<msg@example.com>']);
+});
+
 Deno.test('sendEmail - throws error if SENDGRID_API_KEY not configured', async () => {
   // Save original value
   const originalKey = Deno.env.get('SENDGRID_API_KEY');
