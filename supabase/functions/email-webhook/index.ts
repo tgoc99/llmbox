@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
 
     // Format outgoing email (either LLM response or error)
     perf.start('email_send');
-    const outgoingEmail = errorEmail || formatOutgoingEmail(email, llmResponse);
+    const outgoingEmail = errorEmail || (llmResponse ? formatOutgoingEmail(email, llmResponse) : getGenericErrorEmail(email));
 
     try {
       await sendEmail(outgoingEmail);

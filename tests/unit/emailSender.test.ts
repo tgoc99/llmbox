@@ -3,6 +3,8 @@
  */
 
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
+import { stub, restore } from 'jsr:@std/testing/mock';
+import sgMail from 'npm:@sendgrid/mail@8.1.6';
 import { formatOutgoingEmail, sendEmail } from '../../supabase/functions/email-webhook/emailSender.ts';
 import type { IncomingEmail, LLMResponse } from '../../supabase/functions/email-webhook/types.ts';
 
@@ -266,21 +268,7 @@ Deno.test('sendEmail - throws error if SERVICE_EMAIL_ADDRESS not configured', as
   if (originalAddress) Deno.env.set('SERVICE_EMAIL_ADDRESS', originalAddress);
 });
 
-Deno.test('sendEmail - creates correct SendGrid API payload structure', async () => {
-  // Mock fetch
-  const originalFetch = globalThis.fetch;
-  let capturedRequest: Request | undefined;
-
-  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
-    if (input instanceof Request) {
-      capturedRequest = input.clone();
-    } else if (init) {
-      // Create a Request object from URL and init
-      capturedRequest = new Request(input, init);
-    }
-    return new Response(null, { status: 202 });
-  };
-
+Deno.test('sendEmail - creates correct message structure', async () => {
   // Set required env vars
   Deno.env.set('SENDGRID_API_KEY', 'SG.test-key');
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@mydomain.com');
@@ -294,45 +282,40 @@ Deno.test('sendEmail - creates correct SendGrid API payload structure', async ()
     references: ['<msg1@example.com>', '<original@example.com>'],
   };
 
+  // Mock sgMail.send to capture the message
+  let capturedMsg: any;
+  const sendStub = stub(
+    sgMail,
+    'send',
+    (msg: any) => {
+      capturedMsg = msg;
+      return Promise.resolve([
+        {
+          statusCode: 202,
+          body: {},
+          headers: { 'x-message-id': 'sg-test-message-id' },
+        },
+        {},
+      ] as any);
+    },
+  );
+
   try {
     await sendEmail(outgoingEmail);
 
-    // Verify request was captured
-    assertEquals(capturedRequest !== undefined, true);
-
-    if (capturedRequest !== undefined) {
-      // Verify headers
-      assertEquals(capturedRequest.headers.get('Authorization'), 'Bearer SG.test-key');
-      assertEquals(capturedRequest.headers.get('Content-Type'), 'application/json');
-
-      // Verify body structure
-      const body = await capturedRequest.text();
-      const payload = JSON.parse(body);
-
-      assertEquals(payload.from.email, 'assistant@mydomain.com');
-      assertEquals(payload.personalizations[0].to[0].email, 'user@example.com');
-      assertEquals(payload.personalizations[0].subject, 'Re: Test');
-      assertEquals(payload.personalizations[0].headers['In-Reply-To'], '<original@example.com>');
-      assertEquals(
-        payload.personalizations[0].headers.References,
-        '<msg1@example.com> <original@example.com>',
-      );
-      assertEquals(payload.content[0].type, 'text/plain');
-      assertEquals(payload.content[0].value, 'Test response body');
-    }
+    // Verify message structure
+    assertEquals(capturedMsg.to, 'user@example.com');
+    assertEquals(capturedMsg.from, 'assistant@mydomain.com');
+    assertEquals(capturedMsg.subject, 'Re: Test');
+    assertEquals(capturedMsg.text, 'Test response body');
+    assertEquals(capturedMsg.headers['In-Reply-To'], '<original@example.com>');
+    assertEquals(capturedMsg.headers['References'], '<msg1@example.com> <original@example.com>');
   } finally {
-    // Restore original fetch
-    globalThis.fetch = originalFetch;
+    sendStub.restore();
   }
 });
 
 Deno.test('sendEmail - handles 401 auth error', async () => {
-  // Mock fetch to return 401
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
-    return new Response('Unauthorized', { status: 401 });
-  };
-
   // Set required env vars
   Deno.env.set('SENDGRID_API_KEY', 'SG.invalid-key');
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@mydomain.com');
@@ -346,25 +329,33 @@ Deno.test('sendEmail - handles 401 auth error', async () => {
     references: ['<msg@example.com>'],
   };
 
+  // Mock sgMail.send to throw auth error
+  const sendStub = stub(
+    sgMail,
+    'send',
+    () => {
+      const error: any = new Error('Unauthorized');
+      error.code = 401;
+      error.response = {
+        statusCode: 401,
+        body: { errors: [{ message: 'Unauthorized' }] },
+      };
+      return Promise.reject(error);
+    },
+  );
+
   try {
     await assertRejects(
       async () => await sendEmail(outgoingEmail),
       Error,
-      'SendGrid auth error',
+      'Unauthorized',
     );
   } finally {
-    // Restore original fetch
-    globalThis.fetch = originalFetch;
+    sendStub.restore();
   }
 });
 
 Deno.test('sendEmail - handles 400 bad request error', async () => {
-  // Mock fetch to return 400
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => {
-    return new Response('Bad Request: Invalid email format', { status: 400 });
-  };
-
   // Set required env vars
   Deno.env.set('SENDGRID_API_KEY', 'SG.test-key');
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@mydomain.com');
@@ -378,15 +369,29 @@ Deno.test('sendEmail - handles 400 bad request error', async () => {
     references: ['<msg@example.com>'],
   };
 
+  // Mock sgMail.send to throw bad request error
+  const sendStub = stub(
+    sgMail,
+    'send',
+    () => {
+      const error: any = new Error('Bad Request: Invalid email format');
+      error.code = 400;
+      error.response = {
+        statusCode: 400,
+        body: { errors: [{ message: 'Invalid email format' }] },
+      };
+      return Promise.reject(error);
+    },
+  );
+
   try {
     await assertRejects(
       async () => await sendEmail(outgoingEmail),
       Error,
-      'SendGrid bad request',
+      'Bad Request',
     );
   } finally {
-    // Restore original fetch
-    globalThis.fetch = originalFetch;
+    sendStub.restore();
   }
 });
 
