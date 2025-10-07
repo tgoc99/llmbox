@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { withRetry, DEFAULT_RETRY_CONFIG } from '../../supabase/functions/email-webhook/retryLogic.ts';
 
 Deno.test('withRetry - succeeds on first attempt', async () => {
@@ -53,10 +53,13 @@ Deno.test('withRetry - does not retry on 401 auth error', async () => {
     throw new Response('Unauthorized', { status: 401 });
   };
 
-  await assertRejects(
-    async () => await withRetry(fn),
-    Response,
-  );
+  try {
+    await withRetry(fn);
+    throw new Error('Should have thrown');
+  } catch (error) {
+    assert(error instanceof Response);
+    assertEquals((error as Response).status, 401);
+  }
 
   assertEquals(attempts, 1); // Should not retry
 });
@@ -68,10 +71,13 @@ Deno.test('withRetry - does not retry on 400 bad request', async () => {
     throw new Response('Bad Request', { status: 400 });
   };
 
-  await assertRejects(
-    async () => await withRetry(fn),
-    Response,
-  );
+  try {
+    await withRetry(fn);
+    throw new Error('Should have thrown');
+  } catch (error) {
+    assert(error instanceof Response);
+    assertEquals((error as Response).status, 400);
+  }
 
   assertEquals(attempts, 1); // Should not retry
 });
@@ -83,10 +89,13 @@ Deno.test('withRetry - exhausts all retries and throws last error', async () => 
     throw new Response('Server Error', { status: 500 });
   };
 
-  await assertRejects(
-    async () => await withRetry(fn),
-    Response,
-  );
+  try {
+    await withRetry(fn);
+    throw new Error('Should have thrown');
+  } catch (error) {
+    assert(error instanceof Response);
+    assertEquals((error as Response).status, 500);
+  }
 
   assertEquals(attempts, DEFAULT_RETRY_CONFIG.maxAttempts);
 });

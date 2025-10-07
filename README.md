@@ -604,7 +604,8 @@ To receive emails at your domain:
    - Subdomain: `email`
    - Domain: `yourdomain.com`
    - Destination URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
-   - Check **Spam Check** and **Send Raw**
+   - Check **Spam Check**: ✅ Enabled
+   - **Send Raw**: ❌ Disabled (must use parsed format)
 4. Wait for DNS propagation (may take up to 48 hours)
 5. Test by sending email to: `anything@email.yourdomain.com`
 

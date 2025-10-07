@@ -26,7 +26,7 @@ const extractMessageId = (headers: string): string => {
   const match = headers.match(/Message-ID:\s*(<[^>]+>)/i);
   if (!match) {
     // Generate a fallback Message-ID if not found
-    return `<${Date.now()}@llmbox.local>`;
+    return `<${Date.now()}@llmbox.pro>`;
   }
   return match[1];
 };
@@ -56,6 +56,7 @@ const extractReferences = (headers: string): string[] => {
 
 /**
  * Parse incoming email from SendGrid webhook FormData
+ * Expects parsed format (send_raw=false) from SendGrid Inbound Parse
  * @throws ValidationError if required fields are missing
  */
 export const parseIncomingEmail = (formData: FormData): IncomingEmail => {

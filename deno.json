@@ -15,7 +15,11 @@
     "deploy": "supabase functions deploy email-webhook --project-ref nopocimtfthppwssohty --no-verify-jwt",
     "test": "deno test --allow-all tests/",
     "test:unit": "deno test --allow-all tests/unit/",
-    "test:integration": "deno test --allow-all --allow-env tests/integration/",
+    "test:integration": "./scripts/load-env.sh deno test --allow-all tests/integration/",
+    "test:integration:openai": "./scripts/load-env.sh deno test --allow-all tests/integration/openai.test.ts",
+    "test:integration:sendgrid": "./scripts/load-env.sh deno test --allow-all tests/integration/sendgrid.test.ts",
+    "test:integration:e2e": "./scripts/load-env.sh deno test --allow-all tests/integration/end-to-end.test.ts",
+    "test:integration:menu": "./scripts/run-integration-tests.sh",
     "test:watch": "deno test --allow-all --watch tests/",
     "test:coverage": "deno test --allow-all --coverage=coverage tests/",
     "lint": "deno lint",
@@ -24,10 +28,10 @@
     "fmt:check": "deno fmt --check",
     "check": "deno check supabase/functions/email-webhook/index.ts",
     "check:all": "deno task lint && deno task fmt:check && deno task check && deno task test",
-    "logs": "supabase functions logs email-webhook --project-ref nopocimtfthppwssohty",
-    "logs:tail": "supabase functions logs email-webhook --project-ref nopocimtfthppwssohty --follow",
+    "logs": "echo '\n⚠️  View logs in Supabase Dashboard:\n   https://supabase.com/dashboard/project/nopocimtfthppwssohty/logs/edge-functions\n\nOr use: supabase functions logs email-webhook\n'",
+    "logs:tail": "echo '\n⚠️  View logs in Supabase Dashboard:\n   https://supabase.com/dashboard/project/nopocimtfthppwssohty/logs/edge-functions\n\nOr use: supabase functions logs email-webhook\n'",
     "test:endpoint": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: application/json' -d '{}'",
-    "test:webhook": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: multipart/form-data' -F 'from=test@example.com' -F 'to=test@email.yourdomain.com' -F 'subject=Test Email' -F 'text=Hello, can you help me with something?' -F 'headers={\"Message-ID\": \"<test123@example.com>\"}'",
+    "test:webhook": "curl -i -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook -H 'Content-Type: multipart/form-data' -F 'from=tgoc99@gmail.com' -F 'to=mail@llmbox.pro' -F 'subject=Test Email' -F 'text=Hello, can you help me with something?' -F 'headers={\"Message-ID\": \"<tgoc99@gmail.com>\"}'",
     "secrets:set": "echo '\n⚠️  Usage: deno task secrets:set:key KEY=value\n\nExamples:\n  deno task secrets:set:key SENDGRID_API_KEY=SG.xxx\n  deno task secrets:set:key OPENAI_API_KEY=sk-xxx\n'",
     "secrets:set:key": "supabase secrets set --project-ref nopocimtfthppwssohty",
     "secrets:list": "supabase secrets list --project-ref nopocimtfthppwssohty",
@@ -38,7 +42,7 @@
     "web:start": "cd web && npm run start",
     "web:lint": "cd web && npm run lint",
     "web:type-check": "cd web && npm run type-check",
-    "help": "echo '\n📦 Available tasks:\n\n  Setup:\n    deno task install:supabase Install Supabase CLI (macOS)\n    deno task web:install      Install web dependencies\n\n  Deployment:\n    deno task deploy          Deploy function to Supabase\n    deno task logs            View function logs\n    deno task logs:tail       Tail function logs (live)\n\n  Testing:\n    deno task test            Run all tests\n    deno task test:unit       Run unit tests only\n    deno task test:integration Run integration tests only\n    deno task test:watch      Run tests in watch mode\n    deno task test:coverage   Run tests with coverage\n    deno task test:endpoint   Test if endpoint is live\n    deno task test:webhook    Test webhook with sample data\n\n  Code Quality:\n    deno task lint            Lint code\n    deno task lint:fix        Lint and fix issues\n    deno task fmt             Format code\n    deno task fmt:check       Check formatting\n    deno task check           Type check code\n    deno task check:all       Run all checks + tests\n\n  Web App:\n    deno task web:install     Install web dependencies\n    deno task web:dev         Run web dev server\n    deno task web:build       Build web for production\n    deno task web:start       Start production web server\n    deno task web:lint        Lint web code\n    deno task web:type-check  Type check web code\n\n  Secrets:\n    deno task secrets:list    List all secrets\n    deno task secrets:set:key Set a secret (add KEY=value)\n\n  Help:\n    deno task help            Show this help\n'"
+    "help": "echo '\n📦 Available tasks:\n\n  Setup:\n    deno task install:supabase Install Supabase CLI (macOS)\n    deno task web:install      Install web dependencies\n\n  Deployment:\n    deno task deploy          Deploy function to Supabase\n    deno task logs            View function logs\n    deno task logs:tail       Tail function logs (live)\n\n  Testing:\n    deno task test                    Run all tests\n    deno task test:unit               Run unit tests only\n    deno task test:integration        Run all integration tests\n    deno task test:integration:openai    Run OpenAI integration tests\n    deno task test:integration:sendgrid  Run SendGrid integration tests\n    deno task test:integration:e2e       Run end-to-end integration tests\n    deno task test:integration:menu      Run integration tests (interactive)\n    deno task test:watch              Run tests in watch mode\n    deno task test:coverage           Run tests with coverage\n    deno task test:endpoint           Test if endpoint is live\n    deno task test:webhook            Test webhook with sample data\n\n  Code Quality:\n    deno task lint            Lint code\n    deno task lint:fix        Lint and fix issues\n    deno task fmt             Format code\n    deno task fmt:check       Check formatting\n    deno task check           Type check code\n    deno task check:all       Run all checks + tests\n\n  Web App:\n    deno task web:install     Install web dependencies\n    deno task web:dev         Run web dev server\n    deno task web:build       Build web for production\n    deno task web:start       Start production web server\n    deno task web:lint        Lint web code\n    deno task web:type-check  Type check web code\n\n  Secrets:\n    deno task secrets:list    List all secrets\n    deno task secrets:set:key Set a secret (add KEY=value)\n\n  Help:\n    deno task help            Show this help\n'"
   }
 }
 

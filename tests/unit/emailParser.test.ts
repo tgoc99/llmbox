@@ -37,7 +37,7 @@ Deno.test('parseIncomingEmail - missing Message-ID generates fallback', () => {
   const email = parseIncomingEmail(formData);
 
   assertExists(email.messageId);
-  assertEquals(email.messageId.includes('@llmbox.local'), true);
+  assertEquals(email.messageId.includes('@llmbox.pro'), true);
 });
 
 Deno.test('parseIncomingEmail - no In-Reply-To header', () => {
@@ -150,4 +150,3 @@ Deno.test('parseIncomingEmail - ValidationError includes context', () => {
     }
   }
 });
-

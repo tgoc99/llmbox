@@ -183,7 +183,7 @@ https://llmbox-abc123.vercel.app
 
 ### Step 6: Add Custom Domain (Optional)
 
-If you want `llmbox.com` instead of `llmbox-abc123.vercel.app`:
+If you want `llmbox.pro` instead of `llmbox-abc123.vercel.app`:
 
 #### 6.1: Purchase Domain
 
@@ -200,7 +200,7 @@ Cost: ~$10-20/year
 1. In Vercel, go to your project
 2. Click **Settings** → **Domains**
 3. Click **"Add"**
-4. Enter your domain: `llmbox.com`
+4. Enter your domain: `llmbox.pro`
 
 #### 6.3: Configure DNS
 
@@ -351,7 +351,7 @@ npm run type-check # Type check
 
 Once deployed, you'll have a beautiful landing page at:
 - **Vercel URL:** `https://llmbox-abc123.vercel.app`
-- **Custom Domain:** `https://llmbox.com` (if configured)
+- **Custom Domain:** `https://llmbox.pro` (if configured)
 
 **Share it with your users and start getting emails!** 📧✨
 

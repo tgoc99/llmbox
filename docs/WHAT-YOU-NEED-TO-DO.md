@@ -59,7 +59,7 @@ Your Epic 1 code is **complete and deployed** to Supabase. However, the service 
 SG.1234567890abcdefghijklmnopqrstuvwxyz.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-#### B. Verify Sender Email/Domain
+#### B. Verify Sender Email/Domain DONE
 
 **Option 1: Single Sender (Quick - For Testing)** DONE
 
@@ -76,7 +76,7 @@ SG.1234567890abcdefghijklmnopqrstuvwxyz.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 **✅ Pros:** Fast, good for testing
 **❌ Cons:** Limited to one email, less professional
 
-**Option 2: Domain Authentication (For Production)** TODO
+**Option 2: Domain Authentication (For Production)** DONE
 
 ```
 1. Settings → Sender Authentication
@@ -92,7 +92,7 @@ SG.1234567890abcdefghijklmnopqrstuvwxyz.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 **✅ Pros:** Professional, better deliverability, scalable
 **❌ Cons:** Requires domain, takes time
 
-#### C. Configure Inbound Email (Required) TODO
+#### C. Configure Inbound Email (Required) DONE
 
 **Purpose:** This lets SendGrid forward emails to your Edge Function.
 

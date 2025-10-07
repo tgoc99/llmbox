@@ -58,11 +58,11 @@ export interface LLMResponse {
 export interface OpenAICompletionRequest {
   model: string;
   messages: Array<{
-    role: 'system' | 'user' | 'assistant';
+    role: 'system' | 'user' | 'assistant' | 'developer';
     content: string;
   }>;
-  max_tokens: number;
-  temperature: number;
+  max_tokens?: number;
+  temperature?: number;
 }
 
 /**
@@ -77,11 +77,12 @@ export interface OpenAICompletionResponse {
     index: number;
     message: {
       role: string;
-      content: string;
+      content: string | null;
+      refusal?: string | null;
     };
     finish_reason: string;
   }>;
-  usage: {
+  usage?: {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;

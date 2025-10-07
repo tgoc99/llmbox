@@ -18,36 +18,57 @@ const getEnvVar = (name: string, required: boolean, defaultValue?: string): stri
 
 /**
  * Application configuration object
+ * Uses getters to read environment variables dynamically for testing
  */
 export const config = {
   /** SendGrid API key for sending emails */
-  sendgridApiKey: getEnvVar('SENDGRID_API_KEY', false),
+  get sendgridApiKey(): string {
+    return getEnvVar('SENDGRID_API_KEY', false);
+  },
 
   /** SendGrid webhook verification key */
-  sendgridWebhookVerificationKey: getEnvVar('SENDGRID_WEBHOOK_VERIFICATION_KEY', false),
+  get sendgridWebhookVerificationKey(): string {
+    return getEnvVar('SENDGRID_WEBHOOK_VERIFICATION_KEY', false);
+  },
 
   /** SendGrid API timeout in milliseconds */
-  sendgridTimeoutMs: parseInt(getEnvVar('SENDGRID_TIMEOUT_MS', false, '10000'), 10),
+  get sendgridTimeoutMs(): number {
+    return parseInt(getEnvVar('SENDGRID_TIMEOUT_MS', false, '10000'), 10);
+  },
 
   /** OpenAI API key for LLM processing */
-  openaiApiKey: getEnvVar('OPENAI_API_KEY', false),
+  get openaiApiKey(): string {
+    return getEnvVar('OPENAI_API_KEY', false);
+  },
 
-  /** OpenAI model to use (default: gpt-3.5-turbo) */
-  openaiModel: getEnvVar('OPENAI_MODEL', false, 'gpt-3.5-turbo'),
+  /** OpenAI model to use (default: gpt-4o-mini for better performance and cost efficiency) */
+  get openaiModel(): string {
+    return getEnvVar('OPENAI_MODEL', false, 'gpt-4o-mini');
+  },
 
   /** OpenAI API timeout in milliseconds */
-  openaiTimeoutMs: parseInt(getEnvVar('OPENAI_TIMEOUT_MS', false, '30000'), 10),
+  get openaiTimeoutMs(): number {
+    return parseInt(getEnvVar('OPENAI_TIMEOUT_MS', false, '30000'), 10);
+  },
 
   /** OpenAI max tokens for response */
-  openaiMaxTokens: parseInt(getEnvVar('OPENAI_MAX_TOKENS', false, '1000'), 10),
+  get openaiMaxTokens(): number {
+    return parseInt(getEnvVar('OPENAI_MAX_TOKENS', false, '1000'), 10);
+  },
 
   /** OpenAI temperature (0.0 - 2.0) */
-  openaiTemperature: parseFloat(getEnvVar('OPENAI_TEMPERATURE', false, '0.7')),
+  get openaiTemperature(): number {
+    return parseFloat(getEnvVar('OPENAI_TEMPERATURE', false, '0.7'));
+  },
 
   /** Service email address for outbound emails */
-  serviceEmailAddress: getEnvVar('SERVICE_EMAIL_ADDRESS', false),
+  get serviceEmailAddress(): string {
+    return getEnvVar('SERVICE_EMAIL_ADDRESS', false);
+  },
 
   /** Logging level (DEBUG, INFO, WARN, ERROR, CRITICAL) */
-  logLevel: getEnvVar('LOG_LEVEL', false, 'INFO'),
+  get logLevel(): string {
+    return getEnvVar('LOG_LEVEL', false, 'INFO');
+  },
 };
 

@@ -298,15 +298,19 @@ Deno.test({
         timestamp: new Date(),
       };
 
-      let error: Error | null = null;
+      let error: Error | Response | null = null;
       try {
         await generateResponse(mockEmail);
       } catch (err) {
-        error = err as Error;
+        error = err as Error | Response;
       }
 
       assertEquals(error !== null, true, 'Should throw error on rate limit');
-      assertEquals(error?.message.includes('429'), true, 'Error should mention rate limit');
+      // Check if error is Response object with 429 status or Error with message
+      const hasRateLimit = error instanceof Response
+        ? error.status === 429
+        : (error as Error)?.message?.includes('429') || false;
+      assertEquals(hasRateLimit, true, 'Error should indicate rate limit (429)');
       console.log('✓ Correctly handles OpenAI rate limit');
     } finally {
       globalThis.fetch = originalFetch;

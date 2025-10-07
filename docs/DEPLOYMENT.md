@@ -153,11 +153,13 @@ TTL: 1 Hour
    - **Domain:** `yourdomain.com`
    - **Destination URL:** `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
    - **Check Spam:** ✅ Enabled (recommended)
-   - **Send Raw:** ✅ Enabled (recommended)
-   - **POST the raw, full MIME message:** ❌ Disabled (we use parsed format)
+   - **Send Raw:** ❌ Disabled (must be disabled - use parsed format)
+   - **POST the raw, full MIME message:** ❌ Disabled (must be disabled)
 4. Click **Add**
 
-**⚠️ Important:** DNS propagation can take 24-48 hours. You won't be able to receive emails until propagation completes.
+**⚠️ Important Notes:**
+- DNS propagation can take 24-48 hours. You won't be able to receive emails until propagation completes.
+- The webhook parser requires parsed format (`send_raw=false`). Do NOT enable raw MIME format.
 
 ##### D. Verify MX Record Setup
 
@@ -596,7 +598,8 @@ level: ERROR OR level: CRITICAL
 |-------------|-------|----------|
 | `openai_auth_error` | Invalid OpenAI API key | Verify `OPENAI_API_KEY` secret |
 | `sendgrid_auth_error` | Invalid SendGrid API key | Verify `SENDGRID_API_KEY` secret |
-| `validation_error` | Malformed webhook payload | Check SendGrid Inbound Parse settings |
+| `validation_error` (missing `text`/`headers`) | SendGrid configured with raw MIME format | Change SendGrid Inbound Parse to use parsed format (disable "Send Raw" and "POST the raw, full MIME message") |
+| `validation_error` (other fields) | Malformed webhook payload | Check SendGrid Inbound Parse settings |
 | `sendgrid_bad_request` | Invalid sender email | Verify sender domain is verified |
 
 ### Issue 3: No Email Response Received

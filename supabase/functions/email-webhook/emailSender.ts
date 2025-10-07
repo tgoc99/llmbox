@@ -80,6 +80,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
   logInfo('sendgrid_send_started', {
     messageId: email.inReplyTo,
     to: email.to,
+    from: email.from,
     subject: email.subject,
   });
 
@@ -108,7 +109,17 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
 
           // Check if response is 202 Accepted
           if (res.status === 202) {
-            return res;
+            // Log SendGrid message ID if available
+            const messageId = res.headers.get('X-Message-Id');
+            if (messageId) {
+              logInfo('sendgrid_message_id', {
+                messageId: email.inReplyTo,
+                sendgridMessageId: messageId,
+              });
+            }
+            // Consume the response body to prevent resource leaks
+            await res.text();
+            return;
           }
 
           // Handle different error status codes
