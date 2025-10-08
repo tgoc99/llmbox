@@ -62,7 +62,7 @@ const Hero = (): JSX.Element => {
                     Send email to:
                   </div>
                   <div className="text-lg font-mono font-semibold text-primary-600 break-all">
-                    assistant@llmbox.pro
+                    assistant@mail.llmbox.pro
                   </div>
                 </div>
               </div>
