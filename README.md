@@ -1,211 +1,114 @@
-# Email-to-LLM Chat Service
+# 📧 LLMBox - Email-to-AI Chat Service
 
-A serverless email-based chat service that receives emails via SendGrid, generates intelligent responses using OpenAI's LLM, and sends replies back to users.
+A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, and OpenAI. Users send emails and receive AI-generated responses with built-in web search capability.
 
-## Overview
+## ✨ Features
 
-This service allows users to interact with an AI assistant via email. Users send emails to a configured address, the system processes the email content through OpenAI's GPT models, and sends an intelligent response back to the user's inbox.
-
-**Key Features:**
 - 📧 Receive emails via SendGrid Inbound Parse webhook
-- 🤖 Generate intelligent responses using OpenAI Responses API (GPT-4o-mini or GPT-4o)
-- 🌐 **Built-in web search** - LLM can fetch real-time information from the web
-- 📤 Send responses via SendGrid Send API
-- 🔗 Email threading support (maintains conversation context)
-- 🛡️ Comprehensive error handling and logging
-- ⚡ Serverless architecture using Supabase Edge Functions
-- 📚 Official OpenAI Node.js library integration
+- 🤖 AI responses powered by OpenAI (GPT-4o-mini, GPT-4o)
+- 🌐 Built-in web search - AI can fetch real-time information
+- 📤 Automatic email replies with threading support
+- 🛡️ Comprehensive error handling and structured logging
+- ⚡ Serverless (Supabase Edge Functions - Deno runtime)
+- 🎨 Modern Next.js landing page included
+- ✅ Full test coverage (unit + integration)
 
-## Prerequisites
+## 🚀 Quick Start
 
-- **Deno** - Latest version (managed by Supabase Edge Functions)
-- **Git** - Version 2.x+ for version control
-- **Supabase Account** - Free tier available at [supabase.com](https://supabase.com)
-- **SendGrid Account** - Free tier available at [sendgrid.com](https://sendgrid.com)
-- **OpenAI Account** - API key required from [platform.openai.com](https://platform.openai.com)
+### Prerequisites
 
-## Project Structure
+- [Supabase Account](https://supabase.com) (free tier)
+- [SendGrid Account](https://sendgrid.com) (free tier)
+- [OpenAI API Key](https://platform.openai.com) (requires billing)
+- Domain with DNS access
+
+### 5-Minute Deployment
+
+```bash
+# 1. Set secrets in Supabase
+deno task secrets:set:key SENDGRID_API_KEY=SG.your-key
+deno task secrets:set:key OPENAI_API_KEY=sk-proj-your-key
+deno task secrets:set:key SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com
+deno task secrets:set:key OPENAI_MODEL=gpt-4o-mini
+
+# 2. Deploy
+deno task deploy
+
+# 3. Test
+deno task test:endpoint
+deno task logs
+```
+
+### External Setup (Required)
+
+#### 1. SendGrid
+1. Get API key: [SendGrid Dashboard](https://app.sendgrid.com) → Settings → API Keys
+2. Verify sender domain: Settings → Sender Authentication
+3. Configure Inbound Parse:
+   - Domain: `email.yourdomain.com`
+   - MX Record: `mx.sendgrid.net` (priority 10)
+   - Webhook URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
+
+#### 2. OpenAI
+1. Get API key: [OpenAI Platform](https://platform.openai.com) → API Keys
+2. Add billing method (required)
+3. Choose model: `gpt-4o-mini` (recommended, faster, cheaper) or `gpt-4o`
+
+#### 3. DNS Configuration
+Add MX record to your domain:
+```
+Type: MX
+Host: email.yourdomain.com
+Priority: 10
+Value: mx.sendgrid.net
+```
+
+**Wait 24-48 hours for DNS propagation**, then test by emailing: `test@email.yourdomain.com`
+
+## 📁 Project Structure
 
 ```
 llmbox/
-├── supabase/
-│   └── functions/
-│       └── email-webhook/
-│           └── index.ts              # Main Edge Function handler
+├── supabase/functions/email-webhook/  # Main Edge Function
+│   ├── index.ts                       # Request handler
+│   ├── emailParser.ts                 # Email parsing
+│   ├── llmClient.ts                   # OpenAI integration
+│   ├── emailSender.ts                 # SendGrid sending
+│   ├── logger.ts                      # Structured logging
+│   └── retryLogic.ts                  # Exponential backoff
 ├── tests/
-│   ├── unit/                         # Unit tests
-│   └── integration/                  # Integration tests
-├── web/                              # Next.js landing page
-│   ├── app/                          # Next.js App Router
-│   ├── components/                   # React components
-│   ├── public/                       # Static assets
-│   └── package.json                  # Web dependencies
+│   ├── unit/                          # Unit tests
+│   └── integration/                   # Integration tests
+├── web/                               # Next.js landing page
 ├── docs/
-│   ├── prd.md                        # Product Requirements Document
-│   ├── architecture.md               # Architecture documentation
-│   └── WEB-DEPLOYMENT.md             # Web deployment guide
-├── .gitignore                        # Git ignore file
-├── .env.example                      # Environment variables template
-├── deno.json                         # Deno configuration & tasks
-└── README.md                         # This file
+│   ├── prd.md                         # Product requirements
+│   ├── prd/                           # Detailed PRD sections
+│   └── architecture.md                # System architecture
+├── .cursorrules                       # Cursor IDE coding standards
+├── CLAUDE.md                          # Claude AI context
+├── WEB-PROJECT-SUMMARY.md             # Web app guide
+└── README.md                          # This file
 ```
 
-## Setup Instructions
+## 🎯 Current Status
 
-### 1. Clone Repository
-
-```bash
-git clone <repository-url>
-cd llmbox
-```
-
-### 2. Environment Variables
-
-Copy the example environment file and fill in your API keys:
-
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` with your credentials:
-
-```bash
-# SendGrid API Keys
-SENDGRID_API_KEY=your_sendgrid_api_key_here
-SENDGRID_WEBHOOK_VERIFICATION_KEY=your_verification_key_here
-
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-3.5-turbo
-
-# Service Configuration
-SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com
-
-# Logging Configuration
-LOG_LEVEL=INFO
-```
-
-### 3. Supabase Setup
-
-This project uses Supabase Edge Functions for serverless deployment.
-
-**Project Information:**
-- **Project URL:** https://nopocimtfthppwssohty.supabase.co
-- **Project ID:** nopocimtfthppwssohty
+**Supabase Project:**
+- **ID:** nopocimtfthppwssohty
 - **Region:** us-east-2
+- **Endpoint:** `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
 
-**Edge Function URL:**
-```
-https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
-```
+**Development:**
+- ✅ Epic 1 Complete - Core email-LLM pipeline with web search
+- ✅ Comprehensive tests (unit + integration)
+- ✅ Next.js landing page
+- ⏳ Epic 2 Planned - Webhook verification, rate limiting, enhanced monitoring
 
-### 4. SendGrid Configuration
+## 🛠️ Development
 
-#### A. Obtain SendGrid API Key
-
-1. Log in to [SendGrid Dashboard](https://app.sendgrid.com)
-2. Navigate to Settings → API Keys
-3. Create a new API key with "Full Access" or "Mail Send" permissions
-4. Copy the API key and add it to your `.env.local` file
-
-#### B. Configure Sender Domain (Required for Production)
-
-1. Navigate to Settings → Sender Authentication
-2. Choose "Domain Authentication" or "Single Sender Verification"
-3. Follow DNS setup instructions
-4. Wait for verification (may take 24-48 hours)
-5. Use verified email address as `SERVICE_EMAIL_ADDRESS`
-
-#### C. Configure Inbound Parse (To receive emails)
-
-1. Navigate to Settings → Inbound Parse
-2. Add your subdomain (e.g., `email.yourdomain.com`)
-3. Configure MX record to point to `mx.sendgrid.net`
-4. Set webhook URL to: `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
-5. Wait for DNS propagation (may take up to 48 hours)
-
-### 5. OpenAI Configuration
-
-1. Sign up at [OpenAI Platform](https://platform.openai.com)
-2. Navigate to API Keys
-3. Create a new API key
-4. Copy the API key and add it to your `.env.local` file
-5. Choose your model:
-   - `gpt-4o-mini` - Fast, cost-effective, supports web search (recommended)
-   - `gpt-4o` - Higher quality, supports web search, more expensive
-6. Web search is **enabled by default** - set `ENABLE_WEB_SEARCH=false` to disable
-
-## Local Development
-
-### Testing the Function Locally
-
-The basic Edge Function is deployed and can be tested:
+### Available Commands
 
 ```bash
-# Test with curl
-curl https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
-```
-
-Expected response: `OK` with status 200
-
-### Viewing Logs
-
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select the llmbox project
-3. Navigate to Edge Functions
-4. Click on "email-webhook"
-5. View logs in real-time
-
-## Deployment
-
-The Edge Function code is complete and ready to deploy. However, **external configuration is required** before the service will work.
-
-### 📚 Deployment Guides
-
-Choose the guide that fits your needs:
-
-1. **[QUICK-START.md](QUICK-START.md)** - 🚀 Deploy in 5 minutes (if you have API keys)
-2. **[WHAT-YOU-NEED-TO-DO.md](docs/WHAT-YOU-NEED-TO-DO.md)** - Complete overview of external setup
-3. **[DEPLOYMENT-QUICK-START.md](docs/DEPLOYMENT-QUICK-START.md)** - Quick reference guide
-4. **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Detailed deployment guide with troubleshooting
-5. **[SCRIPTS.md](docs/SCRIPTS.md)** - Complete scripts/tasks reference
-
-### Quick Summary
-
-**What's already done:**
-- ✅ Edge Function code (deployed to Supabase)
-- ✅ Error handling and logging
-- ✅ Tests and documentation
-
-**What you need to do:**
-1. ☐ SendGrid: Get API key, verify sender, configure inbound parse
-2. ☐ OpenAI: Get API key, add billing
-3. ☐ DNS: Add MX record for receiving emails
-4. ☐ Supabase: Set secrets (API keys)
-5. ☐ Wait for DNS propagation (24-48 hours)
-6. ☐ Test with real email
-
-**Total Time:** 30 minutes + 24-48 hours (DNS propagation)
-
-### Redeploy After Changes
-
-```bash
-# Using Deno tasks (recommended - easiest)
-deno task deploy
-
-# Or using Supabase MCP tools
-# The deployment will be handled through the Supabase MCP server
-
-# Or manually using Supabase CLI
-supabase functions deploy email-webhook --project-ref nopocimtfthppwssohty
-```
-
-### 🚀 Available Scripts
-
-Run any task with `deno task <task-name>`:
-
-```bash
-# Deployment
+# Deployment & Monitoring
 deno task deploy          # Deploy to Supabase
 deno task logs            # View logs
 deno task logs:tail       # Live tail logs
@@ -213,591 +116,175 @@ deno task logs:tail       # Live tail logs
 # Testing
 deno task test            # Run all tests
 deno task test:unit       # Unit tests only
-deno task test:webhook    # Test with sample webhook data
-deno task test:endpoint   # Quick health check
+deno task test:integration # Integration tests (requires API keys)
 
 # Code Quality
 deno task fmt             # Format code
 deno task lint            # Lint code
-deno task check:all       # Run all checks + tests (before commit!)
+deno task check:all       # All checks + tests (run before commit)
 
-# Web App
-deno task web:install     # Install web dependencies
-deno task web:dev         # Run web dev server (http://localhost:3000)
+# Web Development
+deno task web:dev         # Run Next.js dev server
 deno task web:build       # Build web for production
-deno task web:start       # Start production web server
+deno task web:install     # Install web dependencies
 
 # Secrets
 deno task secrets:list    # List configured secrets
-deno task secrets:set:key KEY=value # Set a secret
+deno task secrets:set:key KEY=value  # Set a secret
 ```
 
-**📚 Full scripts reference:** [docs/SCRIPTS.md](docs/SCRIPTS.md)
-
-### Quick Start with Scripts
-
-```bash
-# 1. Set your secrets (one time setup)
-deno task secrets:set:key SENDGRID_API_KEY=SG.your-key-here
-deno task secrets:set:key OPENAI_API_KEY=sk-proj-your-key-here
-deno task secrets:set:key SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com
-deno task secrets:set:key OPENAI_MODEL=gpt-3.5-turbo
-
-# 2. Verify secrets are set
-deno task secrets:list
-
-# 3. Deploy
-deno task deploy
-
-# 4. Test it's working
-deno task test:endpoint
-deno task test:webhook
-
-# 5. Watch logs in real-time
-deno task logs:tail
-```
-
-### Setting Secrets in Production
-
-Use Deno tasks (recommended) or Supabase Dashboard/CLI to set environment variables:
-
-```bash
-# Via CLI (if installed)
-supabase secrets set SENDGRID_API_KEY=your_key_here --project-ref nopocimtfthppwssohty
-supabase secrets set OPENAI_API_KEY=your_key_here --project-ref nopocimtfthppwssohty
-supabase secrets set SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com --project-ref nopocimtfthppwssohty
-```
-
-Or via Supabase Dashboard:
-1. Go to Project Settings → Edge Functions
-2. Click "Environment Variables"
-3. Add each secret
-
-## Environment Variables Reference
+### Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SENDGRID_API_KEY` | Yes | - | SendGrid API key for sending emails |
-| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | No | - | Webhook signature verification (Epic 2) |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key for LLM processing |
-| `OPENAI_MODEL` | No | `gpt-3.5-turbo` | Model to use (gpt-3.5-turbo or gpt-4) |
-| `SERVICE_EMAIL_ADDRESS` | Yes | - | From address for outbound emails |
-| `LOG_LEVEL` | No | `INFO` | Logging verbosity (DEBUG, INFO, WARN, ERROR, CRITICAL) |
+| `SENDGRID_API_KEY` | Yes | - | SendGrid API key |
+| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
+| `SERVICE_EMAIL_ADDRESS` | Yes | - | Verified sender email |
+| `OPENAI_MODEL` | No | `gpt-4o-mini` | gpt-4o-mini or gpt-4o |
+| `LOG_LEVEL` | No | `INFO` | DEBUG, INFO, WARN, ERROR, CRITICAL |
+| `ENABLE_WEB_SEARCH` | No | `true` | Enable AI web search |
 
-## Testing
-
-### Manual Testing
-
-1. **Test Basic Function:**
-   ```bash
-   curl https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
-   ```
-
-2. **Test with Email (After SendGrid setup):**
-   - Send an email to your configured address (e.g., anything@email.yourdomain.com)
-   - Check Supabase logs for processing
-   - Verify response email received in inbox
-
-### Automated Testing
-
-Unit and integration tests will be added in subsequent stories:
+### Testing
 
 ```bash
-# Run unit tests (Story 1.2+)
-deno test tests/unit/ --allow-all
+# Run all tests
+deno task test
 
-# Run integration tests (Story 1.3+)
-deno test tests/integration/ --allow-all --allow-env
+# Unit tests only
+deno task test:unit
 
-# Run all tests with coverage
-deno test --allow-all --coverage=coverage
+# Integration tests (requires API keys, makes real API calls, costs money)
+deno task test:integration
 ```
 
-## Troubleshooting
+See [tests/integration/README.md](tests/integration/README.md) for integration test setup.
 
-### Common Issues
+## 🔍 Troubleshooting
 
-**1. Edge Function returns 200 but no email received**
-- Check Supabase logs for errors
-- Verify SendGrid API key is set correctly
-- Verify sender domain is verified in SendGrid
-- Check OpenAI API key is valid
+| Issue | Solution |
+|-------|----------|
+| **No email received** | Check Supabase logs, verify API keys, confirm sender domain verified |
+| **Webhook not triggering** | Verify MX record, check DNS propagation (24-48 hours), confirm webhook URL |
+| **OpenAI errors** | Verify API key, check billing/usage limits, review logs |
+| **Deployment fails** | Verify project ID, check deployment permissions, review logs |
 
-**2. SendGrid webhook not triggering**
-- Verify MX record is configured correctly
-- Check DNS propagation (may take 24-48 hours)
-- Verify webhook URL is correct in SendGrid dashboard
-- Check SendGrid Event Webhook logs
-
-**3. OpenAI API errors**
-- Verify API key is valid
-- Check API usage limits
-- Review rate limits for your tier
-- Check logs for specific error messages
-
-**4. Deployment issues**
-- Verify Supabase project ID is correct
-- Check that you have deployment permissions
-- Review Edge Function logs for errors
-
-## Monitoring and Debugging
-
-### Log Structure and Format
-
-All logs are output as structured JSON with the following format:
-
-```json
-{
-  "timestamp": "2025-01-07T10:30:45.123Z",
-  "level": "INFO",
-  "event": "webhook_received",
-  "context": {
-    "messageId": "CAF=abc123@mail.gmail.com",
-    "from": "user@example.com",
-    "subject": "Hello",
-    "bodyPreview": "Hello, how are you...",
-    "hasInReplyTo": false,
-    "referencesCount": 0
-  }
-}
-```
-
-### Log Levels
-
-| Level | Description | When to Use |
-|-------|-------------|-------------|
-| `DEBUG` | Detailed debugging information | Development only, not in production |
-| `INFO` | Normal operational events | Webhook received, API calls, emails sent |
-| `WARN` | Warning conditions | Rate limits, slow operations, validation issues |
-| `ERROR` | Error conditions that are handled | API failures, send failures |
-| `CRITICAL` | Critical issues requiring immediate attention | Invalid API keys, quota exceeded |
-
-### Accessing Logs in Supabase
-
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project
-3. Navigate to **Edge Functions** → **email-webhook**
-4. Click the **Logs** tab
-5. View real-time logs with filters
-
-### Log Event Types
-
-**Normal Flow Events:**
-- `webhook_received` - Email webhook received from SendGrid
-- `email_parsed` - Email successfully parsed
-- `openai_call_started` - OpenAI API call initiated
-- `openai_response_received` - OpenAI response received
-- `sendgrid_send_started` - Email send initiated
-- `sendgrid_send_completed` - Email sent successfully
-- `email_sent` - Email delivery confirmed
-- `processing_completed` - Full flow completed
-
-**Error Events:**
-- `validation_error` - Invalid webhook payload
-- `openai_rate_limit` - OpenAI rate limit hit
-- `openai_timeout` - OpenAI request timed out
-- `openai_auth_error` - OpenAI authentication failed (CRITICAL)
-- `openai_error` - Other OpenAI errors
-- `sendgrid_rate_limit` - SendGrid rate limit hit
-- `sendgrid_auth_error` - SendGrid authentication failed (CRITICAL)
-- `sendgrid_bad_request` - Malformed SendGrid request
-- `sendgrid_server_error` - SendGrid server error
-- `sendgrid_send_failed` - Email send failed
-- `error_email_sent` - Error notification sent to user
-- `unexpected_error` - Unexpected internal error
-
-**Performance Events:**
-- `slow_webhook_parsing` - Parsing took > 2 seconds
-- `slow_openai_call` - OpenAI call took > 20 seconds
-- `slow_email_send` - Email send took > 5 seconds
-- `slow_total_processing` - Total processing took > 25 seconds
-
-### Using Correlation IDs for Tracing
-
-Every log entry includes a `messageId` field that serves as a correlation ID. Use this to trace a request through the entire lifecycle:
-
-**Example Query in Supabase Logs:**
-```
-messageId: "CAF=abc123@mail.gmail.com"
-```
-
-This will show all events related to that specific email:
-1. webhook_received
-2. email_parsed
-3. openai_call_started
-4. openai_response_received
-5. sendgrid_send_started
-6. sendgrid_send_completed
-7. processing_completed
-
-### Common Debugging Scenarios
-
-#### Scenario 1: Email Not Received
-
-**Check logs for:**
-- `webhook_received` - Was webhook triggered?
-- `email_parsed` - Was email parsed successfully?
-- `openai_response_received` - Was LLM response generated?
-- `sendgrid_send_completed` - Was email sent?
-
-**Filter by log level:**
-- Set filter to `ERROR` or `CRITICAL` to see failures
-
-#### Scenario 2: Slow Response Times
-
-**Check logs for:**
-- `slow_webhook_parsing` - Parsing taking too long?
-- `slow_openai_call` - OpenAI API slow? (may need to switch models)
-- `slow_email_send` - SendGrid slow?
-- `slow_total_processing` - Overall performance issue?
-
-**Look at timing in `processing_completed` event:**
-```json
-{
-  "event": "processing_completed",
-  "context": {
-    "totalProcessingTimeMs": 28000,
-    "parsingTimeMs": 1200,
-    "llmTimeMs": 22000,
-    "emailSendTimeMs": 3500
-  }
-}
-```
-
-#### Scenario 3: OpenAI Errors
-
-**Check for these events:**
-- `openai_rate_limit` - Rate limit hit (WARN level)
-- `openai_timeout` - Request timed out (WARN level)
-- `openai_auth_error` - Invalid API key (CRITICAL level)
-- `openai_error` - Other errors (ERROR level)
-
-**User receives error email?**
-- Check for `error_email_sent` event
-- Error emails are sent for most OpenAI failures
-
-#### Scenario 4: SendGrid Errors
-
-**Check for these events:**
-- `sendgrid_rate_limit` - Rate limit hit
-- `sendgrid_auth_error` - Invalid API key (CRITICAL)
-- `sendgrid_bad_request` - Malformed request
-- `sendgrid_server_error` - SendGrid server issue
-
-**Note:** No error email sent to user for SendGrid failures (prevents email loop)
-
-### Performance Monitoring
-
-**Target Metrics:**
-- **Total processing time:** < 30 seconds
-- **Webhook parsing:** < 2 seconds
-- **LLM API call:** < 20 seconds
-- **Email sending:** < 5 seconds
-
-**Performance warnings are logged when thresholds exceeded.**
-
-### Log Filtering Examples
-
-**Find all errors for a specific email:**
-```
-messageId: "your-message-id" AND level: ERROR
-```
-
-**Find all rate limit issues:**
-```
-event: *rate_limit*
-```
-
-**Find all critical issues:**
-```
-level: CRITICAL
-```
-
-**Find slow operations:**
-```
-event: slow_*
-```
-
-### Log Retention
-
-- **Supabase Free Tier:** 7 days (typical)
-- **Supabase Paid Tier:** Extended retention based on plan
-- For long-term storage, consider exporting to external logging service
-
-### Troubleshooting Guide
-
-| Symptom | Check Logs For | Solution |
-|---------|----------------|----------|
-| No webhook triggered | `webhook_received` missing | Check SendGrid Inbound Parse config, verify MX records |
-| Parsing fails | `validation_error` | Check SendGrid webhook payload format |
-| No LLM response | `openai_auth_error` or `openai_error` | Verify OPENAI_API_KEY is valid |
-| No email sent | `sendgrid_auth_error` or `sendgrid_send_failed` | Verify SENDGRID_API_KEY and sender domain |
-| Slow performance | `slow_*` events | Check OpenAI model (switch to gpt-3.5-turbo), check API status |
-| Rate limits hit | `*_rate_limit` events | Upgrade API plan or implement request throttling |
-
-## Architecture
-
-For detailed architecture documentation, see:
-- [Product Requirements Document](docs/prd.md)
-- [Architecture Documentation](docs/architecture.md)
-- [Epic 1: Foundation & Core Email-LLM Pipeline](docs/prd/epic-1-foundation-core-email-llm-pipeline.md)
-
-## Complete Setup Guide
-
-### Step-by-Step Setup
-
-#### 1. Obtain SendGrid API Key
-
-1. Sign up or log in at [SendGrid](https://sendgrid.com)
-2. Navigate to **Settings → API Keys**
-3. Click **Create API Key**
-4. Name: "Email-LLM Service"
-5. Permissions: Select **Full Access** or **Mail Send**
-6. Click **Create & View**
-7. **Copy the API key immediately** (it won't be shown again)
-8. Add to environment: `SENDGRID_API_KEY=SG.your-key-here`
-
-#### 2. Verify Sender Domain in SendGrid
-
-**For Production Use:**
-
-1. Navigate to **Settings → Sender Authentication**
-2. Click **Authenticate Your Domain**
-3. Select your DNS host provider
-4. Enter your domain (e.g., `yourdomain.com`)
-5. Add the provided DNS records (CNAME, TXT) to your DNS provider:
-   - **CNAME records for DKIM**
-   - **TXT record for SPF**
-6. Click **Verify** once DNS records are added
-7. Wait for verification (may take 24-48 hours for DNS propagation)
-8. Once verified, use an email on that domain as `SERVICE_EMAIL_ADDRESS`
-
-**For Testing (Quick Start):**
-
-1. Navigate to **Settings → Sender Authentication**
-2. Click **Single Sender Verification**
-3. Fill in your personal email address
-4. Click verification link sent to your email
-5. Use this email as `SERVICE_EMAIL_ADDRESS`
-
-#### 3. Obtain OpenAI API Key
-
-1. Sign up or log in at [OpenAI Platform](https://platform.openai.com)
-2. Navigate to **API Keys** section
-3. Click **Create new secret key**
-4. Name: "Email-LLM Service"
-5. **Copy the API key immediately**
-6. Add to environment: `OPENAI_API_KEY=sk-your-key-here`
-
-#### 4. Configure MX Records for Inbound Email
-
-To receive emails at your domain:
-
-1. **Choose a subdomain** for receiving emails (e.g., `email.yourdomain.com`)
-2. **Add MX record** in your DNS provider:
-   ```
-   Type: MX
-   Host: email.yourdomain.com
-   Priority: 10
-   Value: mx.sendgrid.net
-   ```
-3. **Configure Inbound Parse in SendGrid:**
-   - Navigate to **Settings → Inbound Parse**
-   - Click **Add Host & URL**
-   - Subdomain: `email`
-   - Domain: `yourdomain.com`
-   - Destination URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
-   - Check **Spam Check**: ✅ Enabled
-   - **Send Raw**: ❌ Disabled (must use parsed format)
-4. Wait for DNS propagation (may take up to 48 hours)
-5. Test by sending email to: `anything@email.yourdomain.com`
-
-#### 5. Set Secrets in Supabase
-
-**Via Supabase Dashboard:**
-
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project
-3. Navigate to **Project Settings → Edge Functions**
-4. Click **Environment Variables**
-5. Add the following secrets:
-   - `SENDGRID_API_KEY`: Your SendGrid API key
-   - `OPENAI_API_KEY`: Your OpenAI API key
-   - `SERVICE_EMAIL_ADDRESS`: Your verified sender email
-   - `OPENAI_MODEL`: `gpt-3.5-turbo` (or `gpt-4`)
-   - `LOG_LEVEL`: `INFO`
-
-**Via Supabase CLI (if installed):**
+### Viewing Logs
 
 ```bash
-supabase secrets set SENDGRID_API_KEY=SG.your-key --project-ref nopocimtfthppwssohty
-supabase secrets set OPENAI_API_KEY=sk-your-key --project-ref nopocimtfthppwssohty
-supabase secrets set SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com --project-ref nopocimtfthppwssohty
-supabase secrets set OPENAI_MODEL=gpt-3.5-turbo --project-ref nopocimtfthppwssohty
+# View recent logs
+deno task logs
+
+# Live tail (recommended for debugging)
+deno task logs:tail
 ```
 
-### End-to-End Testing Instructions
+Or: Supabase Dashboard → Project → Edge Functions → email-webhook → Logs
 
-#### Prerequisites for Testing
+### Monitoring
 
-- All secrets configured in Supabase
-- Sender domain verified in SendGrid
-- MX records configured and propagated
-- DNS changes fully propagated (wait 24-48 hours after setup)
+**Structured Logging:**
+- All logs in JSON format with timestamp, level, event, context
+- Levels: DEBUG, INFO, WARN, ERROR, CRITICAL
+- Each email tracked with correlation ID (`messageId`)
+- Performance warnings for slow operations
 
-#### Test 1: Verify Edge Function is Running
+**Key Events:**
+- `webhook_received`, `email_parsed`, `openai_response_received`, `sendgrid_send_completed`, `processing_completed`
+- Filter by `messageId` in Supabase logs to trace specific emails
 
-```bash
-curl https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook
-```
+**Performance Targets:**
+- Webhook parsing: < 2s
+- LLM API call: < 20s
+- Email sending: < 5s
+- Total: < 30s
 
-Expected: `200 OK` response (may return an error if not POST request, which is fine)
+## 🎨 Web Landing Page
 
-#### Test 2: Send Test Email
-
-1. **Send an email** from your personal inbox to: `test@email.yourdomain.com`
-2. **Subject:** "Hello Assistant"
-3. **Body:** "Can you help me with something?"
-4. **Wait** up to 30 seconds for processing
-
-#### Test 3: Monitor Logs
-
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Navigate to **Edge Functions → email-webhook → Logs**
-3. Look for the following events:
-   - `webhook_received` - Email was received
-   - `email_parsed` - Email was successfully parsed
-   - `llm_response_generated` - OpenAI generated response
-   - `sendgrid_send_started` - Email send initiated
-   - `sendgrid_send_completed` - Email sent successfully
-   - `processing_completed` - Full flow completed
-
-#### Test 4: Check Your Inbox
-
-1. Check your email inbox (the address you sent from)
-2. You should receive a response email within 30 seconds
-3. Verify the response:
-   - **Subject:** "Re: Hello Assistant"
-   - **From:** Your configured `SERVICE_EMAIL_ADDRESS`
-   - **Body:** AI-generated response from OpenAI
-   - **Threading:** Email should appear in the same thread
-
-#### Test 5: Test Email Threading
-
-1. **Reply** to the AI's response
-2. Write another question in your reply
-3. Send the reply
-4. Wait 30 seconds
-5. Check that the new response:
-   - Appears in the same thread
-   - References previous conversation (if context is maintained)
-
-#### Test 6: Verify Performance
-
-Check Supabase logs for processing times:
-
-- **Total processing time:** Should be < 30 seconds
-- **Webhook parsing:** Should be < 2 seconds
-- **LLM call:** Should be < 20 seconds
-- **Email send:** Should be < 5 seconds
-
-If any step exceeds threshold, you'll see `slow_*` warning in logs.
-
-#### Test 7: Error Scenarios (Optional)
-
-**Test Invalid API Key:**
-1. Temporarily set invalid `OPENAI_API_KEY` in Supabase secrets
-2. Send test email
-3. Check logs for `CRITICAL` level error
-4. Verify you receive error email: "Sorry, I'm having trouble responding right now."
-5. Restore correct API key
-
-**Test Rate Limiting:**
-1. Send 10+ emails rapidly
-2. Watch for rate limit warnings in logs
-3. Verify rate limit error email received
-
-### Troubleshooting End-to-End Flow
-
-| Issue | Possible Cause | Solution |
-|-------|---------------|----------|
-| No email received at service | MX record not configured | Check DNS settings, wait for propagation |
-| Webhook not triggered | Inbound Parse not configured | Verify SendGrid Inbound Parse settings |
-| Email received but no response | API keys invalid | Check Supabase secrets are set correctly |
-| Response received but not in thread | Threading headers missing | Check `formatOutgoingEmail` includes In-Reply-To |
-| Processing takes > 30 seconds | OpenAI model too slow | Consider switching from gpt-4 to gpt-3.5-turbo |
-| SendGrid auth error | API key invalid | Generate new SendGrid API key with Full Access |
-| Sender not verified error | Domain not verified | Complete domain verification in SendGrid |
-
-## Web Landing Page
-
-This project includes a beautiful, modern landing page built with Next.js 14, React, and TailwindCSS.
-
-### Quick Start
+This project includes a production-ready Next.js 14 landing page.
 
 ```bash
-# Install dependencies
+# Quick start
 deno task web:install
-
-# Run development server
 deno task web:dev
 
 # Visit http://localhost:3000
 ```
 
-### Web Deployment
+**Deployment:** Deploy to Vercel in 5 minutes. Set root directory to `web`.
 
-The landing page can be deployed to Vercel, Netlify, or any static hosting provider.
+**Full Guide:** See [WEB-PROJECT-SUMMARY.md](WEB-PROJECT-SUMMARY.md) for complete web app documentation.
 
-**📚 Full deployment guide:** [docs/WEB-DEPLOYMENT.md](docs/WEB-DEPLOYMENT.md)
+## 📚 Documentation
 
-### Web Features
+- **[CLAUDE.md](CLAUDE.md)** - Claude AI context for development
+- **[WEB-PROJECT-SUMMARY.md](WEB-PROJECT-SUMMARY.md)** - Web landing page guide
+- **[docs/prd.md](docs/prd.md)** - Product requirements document
+- **[docs/architecture.md](docs/architecture.md)** - System architecture
+- **[tests/integration/README.md](tests/integration/README.md)** - Integration testing guide
+- **[.cursorrules](.cursorrules)** - Coding standards for Cursor IDE
 
-- ⚡ Built with Next.js 14 (App Router)
-- 🎨 Styled with TailwindCSS
-- 📱 Fully responsive design
-- ♿ Accessible components
-- 🚀 Optimized for performance
-- 🎯 SEO-ready with metadata
+## 🏗️ Architecture
 
-## Development Roadmap
+### Tech Stack
+- **Runtime:** Deno + TypeScript
+- **Infrastructure:** Supabase Edge Functions (serverless)
+- **Email:** SendGrid (Inbound Parse + Send API)
+- **AI:** OpenAI API (gpt-4o-mini, gpt-4o)
+- **Web:** Next.js 14 + React + TailwindCSS
+- **Testing:** Deno test framework
 
-### Epic 1: Foundation & Core Email-LLM Pipeline
-- ✅ **Story 1.1:** Project Setup and Infrastructure
-- ✅ **Story 1.2:** SendGrid Inbound Webhook Endpoint
-- ✅ **Story 1.3:** OpenAI API Integration
-- ✅ **Story 1.4:** SendGrid Outbound Email Response
-- ⏳ **Story 1.5:** Basic Error Handling and Logging
-- ✅ **Landing Page:** Next.js web app
+### Key Principles
+- **Stateless:** No database (MVP), email threading via headers
+- **Serverless:** Auto-scaling, pay-per-use
+- **Error Handling:** Comprehensive try-catch, exponential backoff retries, user-friendly error emails
+- **Logging:** Structured JSON logs with correlation IDs
+- **Security:** No hardcoded secrets, input validation, webhook verification (planned)
 
-### Epic 2: Production Reliability & Security (Future)
-- Webhook signature verification
-- Rate limiting and throttling
-- Enhanced monitoring and alerting
+## 🚦 Development Roadmap
 
-## Contributing
+### Epic 1: Foundation & Core Pipeline ✅ Complete
+- ✅ Project setup and infrastructure
+- ✅ SendGrid inbound/outbound integration
+- ✅ OpenAI integration with web search
+- ✅ Error handling and structured logging
+- ✅ Comprehensive tests
+- ✅ Next.js landing page
 
-This project follows strict coding standards defined in [docs/architecture/coding-standards.md](docs/architecture/coding-standards.md).
+### Epic 2: Production Enhancements ⏳ Planned
+- ☐ Webhook signature verification
+- ☐ Rate limiting and throttling
+- ☐ Enhanced monitoring and alerting
+- ☐ Conversation history (database)
+- ☐ User authentication
 
-**Key Standards:**
-- TypeScript 5.x with strict mode
-- Deno fmt for formatting (lineWidth: 100, singleQuote: true)
-- Deno lint with recommended rules
-- Never use console.log (use structured logger module)
-- All functions must have explicit return types
-- All external API calls must use retry logic
+## 🤝 Contributing
 
-## License
+### Coding Standards
+- TypeScript strict mode, explicit return types
+- Deno fmt (lineWidth: 100, singleQuote: true)
+- Never use `console.log` - use structured logger
+- Run `deno task check:all` before committing
+
+See [.cursorrules](.cursorrules) for complete standards.
+
+### Before Committing
+```bash
+deno task check:all  # Runs fmt, lint, type-check, and tests
+```
+
+## 📝 License
 
 [Add your license here]
 
-## Support
+## 🆘 Support
 
-For issues and questions:
-- Check the [Troubleshooting](#troubleshooting) section
-- Review [Architecture Documentation](docs/architecture.md)
-- Check Supabase logs for error details
+- **Issues:** Check Supabase logs with `deno task logs:tail`
+- **Documentation:** See docs/ folder for detailed guides
+- **Architecture:** Review [docs/architecture.md](docs/architecture.md)
+- **Tests:** See example usage in tests/ folder
 
 ---
 
-**Project Status:** Story 1.1 Complete ✅ | Epic 1 In Progress ⏳
+**Status:** Production Ready | Epic 1 Complete ✅
+
+**Project ID:** nopocimtfthppwssohty (us-east-2)
