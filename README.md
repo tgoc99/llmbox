@@ -28,7 +28,7 @@ A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, a
 # 1. Set secrets in Supabase
 deno task secrets:set:key SENDGRID_API_KEY=SG.your-key
 deno task secrets:set:key OPENAI_API_KEY=sk-proj-your-key
-deno task secrets:set:key SERVICE_EMAIL_ADDRESS=assistant@yourdomain.com
+deno task secrets:set:key SERVICE_EMAIL_ADDRESS=assistant@mail.llmbox.pro
 deno task secrets:set:key OPENAI_MODEL=gpt-4o-mini
 
 # 2. Deploy

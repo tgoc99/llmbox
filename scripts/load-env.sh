@@ -23,7 +23,7 @@ if [ ! -f .env ]; then
     echo -e "${BLUE}Option 2: Set environment variables in shell${NC}"
     echo "  export OPENAI_API_KEY='sk-...'"
     echo "  export SENDGRID_API_KEY='SG....'"
-    echo "  export SERVICE_EMAIL_ADDRESS='assistant@yourdomain.com'"
+    echo "  export SERVICE_EMAIL_ADDRESS='assistant@mail.llmbox.pro'"
     echo ""
     echo -e "${YELLOW}Note: Tests will skip gracefully without credentials${NC}"
     echo "Running tests anyway (they will be skipped)..."

@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 const CTA = (): JSX.Element => {
   const [copied, setCopied] = useState(false);
-  const emailAddress = 'assistant@yourdomain.com';
+  const emailAddress = 'assistant@mail.llmbox.pro';
 
   const handleCopyEmail = (): void => {
     navigator.clipboard.writeText(emailAddress);
@@ -61,7 +61,7 @@ const CTA = (): JSX.Element => {
           {/* Links */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a
-              href="mailto:assistant@yourdomain.com"
+              href="mailto:assistant@mail.llmbox.pro"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-primary-700 font-medium rounded-lg hover:bg-primary-50 transition-colors duration-200 w-full sm:w-auto justify-center"
             >
               <Mail className="w-5 h-5" />

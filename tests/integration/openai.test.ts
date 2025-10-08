@@ -25,7 +25,7 @@ const hasApiKey = (): boolean => {
 const createTestEmail = (overrides?: Partial<IncomingEmail>): IncomingEmail => {
   return {
     from: 'test@example.com',
-    to: 'assistant@yourdomain.com',
+    to: 'assistant@mail.llmbox.pro',
     subject: 'Test Email for Integration',
     body: 'Hello! This is a test email. Please respond with a brief greeting.',
     messageId: '<test-integration@llmbox.pro>',
@@ -101,7 +101,7 @@ Deno.test({
     // Arrange - Email that's a reply in a thread
     const testEmail: IncomingEmail = {
       from: 'user@example.com',
-      to: 'assistant@yourdomain.com',
+      to: 'assistant@mail.llmbox.pro',
       subject: 'Re: Previous conversation',
       body: 'Thanks for the previous response. Can you clarify your last point?',
       messageId: '<reply-test@llmbox.pro>',
@@ -168,7 +168,7 @@ Deno.test({
     // Arrange - Short email
     const shortEmail: IncomingEmail = {
       from: 'test@example.com',
-      to: 'assistant@yourdomain.com',
+      to: 'assistant@mail.llmbox.pro',
       subject: 'Hi',
       body: 'Hello!',
       messageId: '<short-test@llmbox.pro>',
@@ -187,7 +187,7 @@ Deno.test({
     // Arrange - Longer email
     const longEmail: IncomingEmail = {
       from: 'test@example.com',
-      to: 'assistant@yourdomain.com',
+      to: 'assistant@mail.llmbox.pro',
       subject: 'Detailed question',
       body:
         'I have a detailed question about your service. ' +

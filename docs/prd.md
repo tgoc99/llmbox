@@ -250,7 +250,7 @@ Add robust error handling, email threading support, SendGrid webhook signature v
 
 1. SendGrid Send API client configured with API key from environment variables
 2. Function formats email response with:
-   - `from`: Service email address (e.g., `assistant@yourdomain.com`)
+   - `from`: Service email address (e.g., `assistant@mail.llmbox.pro`)
    - `to`: Original sender's email address
    - `subject`: `Re: {original subject}`
    - `text`: LLM-generated response content

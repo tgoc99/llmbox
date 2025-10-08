@@ -114,7 +114,7 @@ cd web && npm install
 
 ### 2. Update Email Addresses (Required)
 
-Replace `assistant@yourdomain.com` with your actual service email in:
+Replace `assistant@mail.llmbox.pro` with your actual service email in:
 - `web/components/Hero.tsx` (line ~70)
 - `web/components/CTA.tsx` (line ~8)
 
@@ -218,7 +218,7 @@ npm run type-check
 ## 🎨 Customization
 
 ### Update Email Address (Required)
-Edit `web/components/Hero.tsx` and `web/components/CTA.tsx` to replace `assistant@yourdomain.com` with your actual service email.
+Edit `web/components/Hero.tsx` and `web/components/CTA.tsx` to replace `assistant@mail.llmbox.pro` with your actual service email.
 
 ### Change Colors
 Edit `web/tailwind.config.ts` to customize the primary color scheme (currently purple/indigo).

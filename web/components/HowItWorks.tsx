@@ -12,7 +12,7 @@ const steps: Step[] = [
     number: 1,
     icon: <Send className="w-8 h-8" />,
     title: 'Send an Email',
-    description: 'Compose your question or request in your email client and send it to assistant@yourdomain.com',
+    description: 'Compose your question or request in your email client and send it to assistant@mail.llmbox.pro',
   },
   {
     number: 2,
@@ -73,7 +73,7 @@ const HowItWorks = (): JSX.Element => {
                 </div>
                 <div className="flex-1">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="text-xs text-blue-600 font-medium mb-1">To: assistant@yourdomain.com</div>
+                    <div className="text-xs text-blue-600 font-medium mb-1">To: assistant@mail.llmbox.pro</div>
                     <p className="text-gray-800">
                       Can you help me write a professional email to decline a meeting invitation politely?
                     </p>
