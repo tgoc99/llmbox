@@ -4,7 +4,7 @@ import { parseIncomingEmail, ValidationError } from '../../supabase/functions/em
 Deno.test('parseIncomingEmail - valid payload with all fields', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('text', 'This is the email body content.');
   formData.append(
@@ -15,7 +15,7 @@ Deno.test('parseIncomingEmail - valid payload with all fields', () => {
   const email = parseIncomingEmail(formData);
 
   assertEquals(email.from, 'user@example.com');
-  assertEquals(email.to, 'assistant@yourdomain.com');
+  assertEquals(email.to, 'assistant@mail.llmbox.pro');
   assertEquals(email.subject, 'Test Subject');
   assertEquals(email.body, 'This is the email body content.');
   assertEquals(email.messageId, '<CAF=abc123@mail.gmail.com>');
@@ -29,7 +29,7 @@ Deno.test('parseIncomingEmail - valid payload with all fields', () => {
 Deno.test('parseIncomingEmail - missing Message-ID generates fallback', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('text', 'Email body');
   formData.append('headers', 'Date: Wed, 7 Jan 2025 10:00:00 -0500');
@@ -43,7 +43,7 @@ Deno.test('parseIncomingEmail - missing Message-ID generates fallback', () => {
 Deno.test('parseIncomingEmail - no In-Reply-To header', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('text', 'Email body');
   formData.append('headers', 'Message-ID: <msg@example.com>');
@@ -56,7 +56,7 @@ Deno.test('parseIncomingEmail - no In-Reply-To header', () => {
 Deno.test('parseIncomingEmail - no References header', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('text', 'Email body');
   formData.append('headers', 'Message-ID: <msg@example.com>');
@@ -68,7 +68,7 @@ Deno.test('parseIncomingEmail - no References header', () => {
 
 Deno.test('parseIncomingEmail - missing required field: from', () => {
   const formData = new FormData();
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('text', 'Email body');
   formData.append('headers', 'Message-ID: <msg@example.com>');
@@ -97,7 +97,7 @@ Deno.test('parseIncomingEmail - missing required field: to', () => {
 Deno.test('parseIncomingEmail - missing required field: subject', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('text', 'Email body');
   formData.append('headers', 'Message-ID: <msg@example.com>');
 
@@ -111,7 +111,7 @@ Deno.test('parseIncomingEmail - missing required field: subject', () => {
 Deno.test('parseIncomingEmail - missing required field: text', () => {
   const formData = new FormData();
   formData.append('from', 'user@example.com');
-  formData.append('to', 'assistant@yourdomain.com');
+  formData.append('to', 'assistant@mail.llmbox.pro');
   formData.append('subject', 'Test Subject');
   formData.append('headers', 'Message-ID: <msg@example.com>');
 

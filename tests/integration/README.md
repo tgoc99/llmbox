@@ -22,7 +22,7 @@ Integration tests that make **real API calls** to OpenAI and SendGrid. These ver
 ```bash
 export OPENAI_API_KEY="sk-your-key"
 export SENDGRID_API_KEY="SG.your-key"
-export SERVICE_EMAIL_ADDRESS="assistant@yourdomain.com"
+export SERVICE_EMAIL_ADDRESS="assistant@mail.llmbox.pro"
 export TEST_RECIPIENT_EMAIL="test@yourdomain.com"  # optional
 ```
 

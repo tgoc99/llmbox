@@ -5,7 +5,7 @@ import type { IncomingEmail } from '../../supabase/functions/email-webhook/types
 Deno.test('formatEmailInput - creates correct format with email data', () => {
   const email: IncomingEmail = {
     from: 'user@example.com',
-    to: 'assistant@yourdomain.com',
+    to: 'assistant@mail.llmbox.pro',
     subject: 'Test Subject',
     body: 'This is the email body.',
     messageId: '<msg@example.com>',
@@ -45,7 +45,7 @@ Deno.test('formatEmailInput - includes all email fields', () => {
 Deno.test('formatEmailInput - handles empty body', () => {
   const email: IncomingEmail = {
     from: 'user@example.com',
-    to: 'assistant@yourdomain.com',
+    to: 'assistant@mail.llmbox.pro',
     subject: 'Empty Email',
     body: '',
     messageId: '<msg@example.com>',
