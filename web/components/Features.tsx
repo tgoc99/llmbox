@@ -1,4 +1,4 @@
-import { Mail, Zap, MessageCircle, Shield, Clock, Sparkles } from 'lucide-react';
+import { Mail, Zap, MessageCircle, Globe, Clock, Sparkles } from 'lucide-react';
 
 interface Feature {
   icon: React.ReactNode;
@@ -28,9 +28,9 @@ const features: Feature[] = [
     description: 'Maintains conversation context through email threads for natural back-and-forth.',
   },
   {
-    icon: <Shield className="w-6 h-6" />,
-    title: 'Secure & Private',
-    description: 'Enterprise-grade security with encrypted communication and no data retention.',
+    icon: <Globe className="w-6 h-6" />,
+    title: 'Web Search Enabled',
+    description: 'Get real-time information from the web with built-in search capabilities.',
   },
   {
     icon: <Clock className="w-6 h-6" />,

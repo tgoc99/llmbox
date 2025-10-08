@@ -70,7 +70,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
       try {
         return await openai.responses.create({
           model: config.openaiModel,
-          instructions: 'You are a helpful email assistant. Respond professionally and concisely. If you use web search, cite your sources.',
+          instructions: 'You are a helpful assistant that users access via email. Respond professionally and concisely. If you use web search, cite your sources.',
           input: input,
           ...(tools.length > 0 && { tools }), // Only add tools if array is not empty
         });

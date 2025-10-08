@@ -29,22 +29,6 @@ const HomePage = (): JSX.Element => {
               <a href="#how-it-works" className="hover:text-white transition-colors">
                 How It Works
               </a>
-              <a
-                href="https://github.com/yourusername/llmbox"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Documentation
-              </a>
-              <a
-                href="https://github.com/yourusername/llmbox"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                GitHub
-              </a>
             </div>
           </div>
 
