@@ -56,7 +56,7 @@ export const formatOutgoingEmail = (
     .filter((ref) => ref.length > 0);
 
   return {
-    from: config.serviceEmailAddress,
+    from: incoming.to,
     to: incoming.from,
     subject,
     body: llmResponse.content,
