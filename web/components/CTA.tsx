@@ -67,15 +67,6 @@ const CTA = (): JSX.Element => {
               <Mail className="w-5 h-5" />
               <span>Open Email Client</span>
             </a>
-            <a
-              href="https://github.com/yourusername/llmbox"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary-700/50 text-white font-medium rounded-lg hover:bg-primary-700 border border-white/20 transition-colors duration-200 w-full sm:w-auto justify-center"
-            >
-              <ExternalLink className="w-5 h-5" />
-              <span>View Documentation</span>
-            </a>
           </div>
 
           {/* Footer Note */}

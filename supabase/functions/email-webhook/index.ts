@@ -2,15 +2,21 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { parseIncomingEmail, ValidationError } from './emailParser.ts';
 import { formatOutgoingEmail, sendEmail } from './emailSender.ts';
-import {
-  getGenericErrorEmail,
-  getOpenAIErrorEmail,
-  getRateLimitErrorEmail,
-  getTimeoutErrorEmail,
-} from './errorTemplates.ts';
-import { logCritical, logError, logInfo, logWarn } from './logger.ts';
+import { getGenericErrorEmail } from './errorTemplates.ts';
+import { logError, logInfo, logWarn } from './logger.ts';
 import { generateResponse } from './llmClient.ts';
 import { PerformanceTracker } from './performance.ts';
+import { handleOpenAIError, handleSendGridError } from './errors.ts';
+import {
+  validateRequestMethod,
+  createSuccessResponse,
+  createValidationErrorResponse,
+  createGenericErrorResponse,
+} from './requestHandler.ts';
+import {
+  checkOperationThreshold,
+  checkTotalProcessingThreshold,
+} from './performanceMonitor.ts';
 
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
@@ -18,15 +24,9 @@ Deno.serve(async (req: Request) => {
 
   try {
     // Check request method
-    if (req.method !== 'POST') {
-      logWarn('invalid_method', {
-        method: req.method,
-        path: new URL(req.url).pathname,
-      });
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const methodValidationResponse = validateRequestMethod(req);
+    if (methodValidationResponse) {
+      return methodValidationResponse;
     }
 
     // Parse request body as FormData
@@ -56,18 +56,12 @@ Deno.serve(async (req: Request) => {
     });
 
     // Check if parsing took longer than 2 seconds
-    if (parsingTime > 2000) {
-      logWarn('slow_webhook_parsing', {
-        messageId: email.messageId,
-        processingTimeMs: parsingTime,
-        threshold: 2000,
-      });
-    }
+    checkOperationThreshold('webhook_parsing', parsingTime, 2000, email.messageId);
 
     // Generate LLM response with error handling
     perf.start('openai_call');
     let llmResponse;
-    let errorEmail = null;
+    let errorEmail: ReturnType<typeof getGenericErrorEmail> | null = null;
 
     try {
       logInfo('openai_call_started', {
@@ -88,52 +82,10 @@ Deno.serve(async (req: Request) => {
       });
 
       // Check if LLM call took longer than 20 seconds
-      if (llmTime > 20000) {
-        logWarn('slow_openai_call', {
-          messageId: email.messageId,
-          processingTimeMs: llmTime,
-          threshold: 20000,
-        });
-      }
+      checkOperationThreshold('openai_call', llmTime, 20000, email.messageId);
     } catch (error) {
       const llmTime = perf.end('openai_call');
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Detect error type
-      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
-        // Rate limit error
-        logWarn('openai_rate_limit', {
-          messageId: email.messageId,
-          error: errorMessage,
-          processingTimeMs: llmTime,
-        });
-        errorEmail = getRateLimitErrorEmail(email);
-      } else if (
-        errorMessage.includes('timeout') || errorMessage.toLowerCase().includes('timed out')
-      ) {
-        // Timeout error
-        logWarn('openai_timeout', {
-          messageId: email.messageId,
-          error: errorMessage,
-          processingTimeMs: llmTime,
-        });
-        errorEmail = getTimeoutErrorEmail(email);
-      } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-        // Auth error - critical
-        logCritical('openai_auth_error', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-        errorEmail = getGenericErrorEmail(email);
-      } else {
-        // Generic error
-        logError('openai_error', {
-          messageId: email.messageId,
-          error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-        errorEmail = getOpenAIErrorEmail(email, error as Error);
-      }
+      errorEmail = handleOpenAIError(error, email, llmTime);
     }
 
     // Format outgoing email (either LLM response or error)
@@ -153,13 +105,7 @@ Deno.serve(async (req: Request) => {
       });
 
       // Check if email send took longer than 5 seconds
-      if (emailSendTime > 5000) {
-        logWarn('slow_email_send', {
-          messageId: email.messageId,
-          sendTimeMs: emailSendTime,
-          threshold: 5000,
-        });
-      }
+      checkOperationThreshold('email_send', emailSendTime, 5000, email.messageId);
 
       if (errorEmail) {
         logInfo('error_email_sent', {
@@ -169,36 +115,7 @@ Deno.serve(async (req: Request) => {
       }
     } catch (error) {
       perf.end('email_send');
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Check error type for SendGrid
-      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
-        logWarn('sendgrid_rate_limit', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-      } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-        logCritical('sendgrid_auth_error', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-      } else if (errorMessage.includes('400')) {
-        logError('sendgrid_bad_request', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-      } else if (errorMessage.match(/50[0-9]/)) {
-        logError('sendgrid_server_error', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-      } else {
-        logError('sendgrid_send_failed', {
-          messageId: email.messageId,
-          error: errorMessage,
-        });
-      }
-
+      handleSendGridError(error, email.messageId);
       // Do NOT send error email to user (prevents email loop)
       // Still return 200 to SendGrid webhook
     }
@@ -226,25 +143,10 @@ Deno.serve(async (req: Request) => {
     );
 
     // Warn if total processing time > 25 seconds
-    if (totalProcessingTime > 25000) {
-      logWarn('slow_total_processing', {
-        messageId: email.messageId,
-        totalProcessingTimeMs: totalProcessingTime,
-        threshold: 25000,
-      });
-    }
+    checkTotalProcessingThreshold(totalProcessingTime, 25000, email.messageId);
 
     // Always return 200 OK to SendGrid webhook
-    return new Response(
-      JSON.stringify({
-        status: 'success',
-        messageId: email.messageId,
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
+    return createSuccessResponse(email.messageId);
   } catch (error) {
     // Handle validation errors (return 400)
     if (error instanceof ValidationError) {
@@ -255,16 +157,7 @@ Deno.serve(async (req: Request) => {
         processingTimeMs: perf.getTotalDuration(),
       });
 
-      return new Response(
-        JSON.stringify({
-          error: error.message,
-          details: error.context,
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+      return createValidationErrorResponse(error.message, error.context);
     }
 
     // Handle unexpected errors (return 200 to prevent retry loop)
@@ -276,15 +169,6 @@ Deno.serve(async (req: Request) => {
     });
 
     // Return 200 to prevent SendGrid retry loop
-    return new Response(
-      JSON.stringify({
-        status: 'error',
-        message: 'Internal error occurred',
-      }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
+    return createGenericErrorResponse();
   }
 });

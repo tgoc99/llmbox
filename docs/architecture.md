@@ -15,6 +15,7 @@ This is a new serverless application built from scratch using Supabase Edge Func
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-01-07 | 1.0 | Initial Architecture | Architect (Winston) |
+| 2025-10-08 | 1.1 | Updated for Epic 1 completion, web search, landing page | System |
 
 ---
 
@@ -22,7 +23,9 @@ This is a new serverless application built from scratch using Supabase Edge Func
 
 ### Technical Summary
 
-The Email-to-LLM Chat Service is a **serverless, event-driven architecture** built on Supabase Edge Functions. The system receives emails via SendGrid's Inbound Parse webhook, processes them through OpenAI's API for LLM-generated responses, and sends replies back via SendGrid's Send API. The architecture is **stateless for MVP**, with no database persistence, allowing for simple deployment and horizontal scaling. All API credentials are securely managed through Supabase secrets. The design supports the PRD's core goals of rapid MVP deployment, seamless email integration, and future scalability to add conversation history storage.
+The Email-to-LLM Chat Service is a **serverless, event-driven architecture** built on Supabase Edge Functions. The system receives emails via SendGrid's Inbound Parse webhook, processes them through OpenAI's API (GPT-4o-mini, GPT-4o) with **built-in web search capability** for LLM-generated responses, and sends replies back via SendGrid's Send API. The architecture is **stateless for MVP**, with no database persistence, allowing for simple deployment and horizontal scaling. All API credentials are securely managed through Supabase secrets. The system includes a **Next.js 14 landing page** for user-facing documentation. The design supports the PRD's core goals of rapid MVP deployment, seamless email integration, and future scalability to add conversation history storage.
+
+**Status:** Epic 1 Complete ✅ - Core email-LLM pipeline fully operational with comprehensive testing.
 
 ### Platform and Infrastructure Choice
 
@@ -61,10 +64,12 @@ The Email-to-LLM Chat Service is a **serverless, event-driven architecture** bui
 graph TB
     User[Email User] -->|1. Sends Email| SendGrid_In[SendGrid Inbound Parse]
     SendGrid_In -->|2. Webhook POST| EdgeFunc[Supabase Edge Function<br/>email-webhook]
-    EdgeFunc -->|3. LLM Request| OpenAI[OpenAI API<br/>GPT-4/3.5-turbo]
+    EdgeFunc -->|3. LLM Request| OpenAI[OpenAI API<br/>GPT-4o-mini/GPT-4o<br/>with Web Search]
     OpenAI -->|4. LLM Response| EdgeFunc
     EdgeFunc -->|5. Send Email| SendGrid_Out[SendGrid Send API]
     SendGrid_Out -->|6. Delivers Email| User
+
+    WebUser[Web User] -->|Visits| LandingPage[Next.js Landing Page<br/>Vercel]
 
     EdgeFunc -.->|Retrieves Secrets| Secrets[Supabase Secrets<br/>API Keys]
     EdgeFunc -.->|Writes Logs| Logs[Supabase Logs<br/>Monitoring]
@@ -81,10 +86,15 @@ graph TB
         OpenAI
     end
 
+    subgraph "Web Frontend"
+        LandingPage
+    end
+
     style EdgeFunc fill:#4F46E5
     style Secrets fill:#10B981
     style Logs fill:#F59E0B
     style User fill:#EC4899
+    style LandingPage fill:#9333EA
 ```
 
 ### Architectural Patterns
@@ -107,12 +117,15 @@ graph TB
 
 | Category | Technology | Version | Purpose | Rationale |
 |----------|-----------|---------|---------|-----------|
+| **Frontend** | Next.js | 14.2.15 | Landing page | Modern React framework, static site generation, Vercel deployment |
+| **Frontend** | React | 18.3+ | UI library | Component-based architecture, industry standard |
+| **Frontend** | TailwindCSS | 3.4+ | Styling | Utility-first CSS, rapid UI development |
 | **Runtime** | Deno | Latest (Supabase managed) | JavaScript/TypeScript runtime for Edge Functions | Native to Supabase Edge Functions; modern, secure runtime with built-in TypeScript support |
 | **Language** | TypeScript | 5.x | Primary development language | Type safety for API integrations; reduces runtime errors; excellent tooling support |
 | **Serverless Platform** | Supabase Edge Functions | Latest | Serverless compute hosting | Zero-config scaling; generous free tier; integrated with Supabase ecosystem |
 | **Email Inbound** | SendGrid Inbound Parse | API v3 | Receive and parse incoming emails | Industry-standard email parsing; reliable webhook delivery; handles MIME complexity |
 | **Email Outbound** | SendGrid Send API | API v3 | Send response emails | Same provider as inbound (simplified billing); excellent deliverability; supports custom headers for threading |
-| **LLM API** | OpenAI API | Latest | Generate intelligent email responses | Industry-leading language models (GPT-4/3.5-turbo); well-documented API; reliable service |
+| **LLM/AI** | OpenAI API | GPT-4o-mini, GPT-4o | AI response generation with web search | Industry-leading LLM; built-in web search capability; reliable API; cost-effective gpt-4o-mini recommended |
 | **HTTP Client** | Deno native fetch | Built-in | HTTP requests to external APIs | Native to Deno; standards-compliant; no additional dependencies |
 | **Secrets Management** | Supabase Secrets | Built-in | Store API keys securely | Integrated with Edge Functions; environment variable injection; no external service needed |
 | **Logging** | Supabase Logs | Built-in | Centralized logging and monitoring | Native integration; queryable logs; no additional setup required |
@@ -308,23 +321,25 @@ graph TD
 
 ### OpenAI API
 
-- **Purpose:** Generate intelligent email responses using LLM
-- **Documentation (ALWAYS USE CONTEXT7 MCP):** https://platform.openai.com/docs/api-reference/chat
+- **Purpose:** Generate intelligent email responses using LLM with built-in web search
+- **Documentation:** https://platform.openai.com/docs/api-reference/chat
 - **Base URL(s):** `https://api.openai.com/v1/chat/completions`
 - **Authentication:** Bearer token (API key in Authorization header)
-- **Rate Limits:** Varies by tier (free tier: 3 requests/minute, 200 requests/day)
+- **Rate Limits:** Varies by tier (usage-based pricing)
 
 **Key Endpoints Used:**
-- `POST /v1/chat/completions` - Generate chat completion
+- `POST /v1/chat/completions` - Generate chat completion with optional web search
 
 **Integration Notes:**
-- Use `gpt-4` or `gpt-3.5-turbo` model (configurable via env var)
+- **Models:** `gpt-4o-mini` (recommended, cost-effective) or `gpt-4o` (higher quality)
+- **Web Search:** Built-in capability enabled by default via `ENABLE_WEB_SEARCH=true`
 - System message: "You are a helpful email assistant. Respond professionally and concisely."
 - Max tokens: 1000 (response), 4000 (input)
 - Temperature: 0.7
 - Timeout: 30 seconds
-- Retry on 429 (rate limit) and 5xx errors
+- Retry on 429 (rate limit) and 5xx errors with exponential backoff
 - API key stored in Supabase Secrets as `OPENAI_API_KEY`
+- Uses official `@openai/openai` npm library
 
 ---
 
@@ -485,57 +500,85 @@ CREATE INDEX idx_messages_message_id ON messages(message_id);
 ## Source Tree
 
 ```plaintext
-email-llm-service/
+llmbox/
 ├── supabase/
 │   ├── functions/
 │   │   └── email-webhook/
 │   │       ├── index.ts              # Main Edge Function handler
-│   │       ├── webhookVerifier.ts    # SendGrid HMAC signature verification
+│   │       ├── requestHandler.ts     # Request processing logic
 │   │       ├── emailParser.ts        # Parse SendGrid webhook payload
-│   │       ├── llmClient.ts          # OpenAI API client with retry logic
+│   │       ├── llmClient.ts          # OpenAI API client with web search
 │   │       ├── emailSender.ts        # SendGrid Send API client
-│   │       ├── logger.ts             # Structured logging utilities
+│   │       ├── logger.ts             # Structured JSON logging
 │   │       ├── retryLogic.ts         # Exponential backoff retry handler
+│   │       ├── errors.ts             # Custom error types
+│   │       ├── errorTemplates.ts     # User-facing error messages
+│   │       ├── performance.ts        # Performance monitoring
+│   │       ├── performanceMonitor.ts # Performance tracking utilities
 │   │       ├── types.ts              # TypeScript interfaces and types
 │   │       └── config.ts             # Configuration and env var access
-│   ├── config.toml                   # Supabase project configuration
-│   └── .env.local                    # Local development secrets (gitignored)
+│   └── config.toml                   # Supabase project configuration
 ├── tests/
 │   ├── unit/
-│   │   ├── webhookVerifier.test.ts   # Unit tests for signature verification
-│   │   ├── emailParser.test.ts       # Unit tests for email parsing
-│   │   ├── llmClient.test.ts         # Unit tests with mocked OpenAI
-│   │   ├── emailSender.test.ts       # Unit tests with mocked SendGrid
-│   │   └── retryLogic.test.ts        # Unit tests for retry behavior
+│   │   ├── emailParser.test.ts       # Email parsing unit tests
+│   │   ├── llmClient.test.ts         # LLM client unit tests
+│   │   ├── emailSender.test.ts       # Email sender unit tests
+│   │   ├── retryLogic.test.ts        # Retry logic unit tests
+│   │   ├── logger.test.ts            # Logger unit tests
+│   │   └── errorTemplates.test.ts    # Error template unit tests
 │   └── integration/
-│       ├── webhook.test.ts           # Integration test for full webhook flow
-│       ├── openai.test.ts            # Integration test with real OpenAI API
-│       └── sendgrid.test.ts          # Integration test with real SendGrid
+│       ├── openai.test.ts            # Real OpenAI API tests
+│       ├── sendgrid.test.ts          # Real SendGrid API tests
+│       ├── end-to-end.test.ts        # Complete workflow tests
+│       ├── webhook.test.ts           # Webhook integration tests
+│       └── README.md                 # Integration test documentation
+├── web/                              # Next.js landing page
+│   ├── app/
+│   │   ├── layout.tsx                # Root layout with SEO
+│   │   ├── page.tsx                  # Main landing page
+│   │   └── globals.css               # Global styles
+│   ├── components/
+│   │   ├── Hero.tsx                  # Hero section
+│   │   ├── Features.tsx              # Features grid
+│   │   ├── HowItWorks.tsx            # How it works section
+│   │   └── CTA.tsx                   # Call-to-action
+│   ├── public/                       # Static assets
+│   ├── package.json                  # Web dependencies
+│   ├── tsconfig.json                 # TypeScript config
+│   ├── tailwind.config.ts            # TailwindCSS config
+│   ├── next.config.js                # Next.js config
+│   └── README.md                     # Web documentation
 ├── docs/
 │   ├── prd.md                        # Product Requirements Document
-│   ├── architecture.md               # This document
-│   └── api-examples.md               # Example API requests/responses
+│   ├── prd/                          # Detailed PRD sections
+│   │   ├── epic-1-foundation-core-email-llm-pipeline.md
+│   │   ├── epic-2-production-reliability-security.md
+│   │   ├── epic-list.md
+│   │   ├── goals-and-background-context.md
+│   │   ├── index.md
+│   │   ├── requirements.md
+│   │   └── technical-assumptions.md
+│   └── architecture.md               # This document
 ├── scripts/
-│   ├── deploy.sh                     # Deployment script
-│   └── test-webhook.sh               # Local webhook testing script
-├── .github/
-│   └── workflows/
-│       ├── test.yml                  # CI pipeline for tests
-│       └── deploy.yml                # CD pipeline for deployment
+│   ├── load-env.sh                   # Environment variable loader
+│   └── run-integration-tests.sh      # Integration test runner
+├── .cursorrules                      # Cursor IDE coding standards
 ├── .gitignore                        # Git ignore file
-├── .env.example                      # Environment variables template
-├── deno.json                         # Deno configuration
-├── import_map.json                   # Deno import map (if needed)
-└── README.md                         # Project documentation
+├── deno.json                         # Deno tasks and configuration
+├── deno.lock                         # Deno dependency lock file
+├── CLAUDE.md                         # Claude AI context
+├── WEB-PROJECT-SUMMARY.md            # Web landing page guide
+└── README.md                         # Main project documentation
 ```
 
 **Key Directory Explanations:**
 
-- **`supabase/functions/email-webhook/`** - Single Edge Function containing all core logic
-- **`tests/`** - Separated unit and integration tests for comprehensive coverage
-- **`docs/`** - All project documentation centralized
-- **`scripts/`** - Deployment and testing automation
-- **`.github/workflows/`** - CI/CD automation (optional but recommended)
+- **`supabase/functions/email-webhook/`** - Single Edge Function containing all core logic (email parsing, OpenAI integration, SendGrid sending, error handling, logging)
+- **`tests/`** - Comprehensive test coverage with unit tests (fast, no API calls) and integration tests (real API calls)
+- **`web/`** - Next.js 14 landing page with React + TailwindCSS, deployable to Vercel
+- **`docs/`** - All project documentation including PRD and architecture
+- **`scripts/`** - Helper scripts for environment loading and test running
+- **`.cursorrules`** - Coding standards for Cursor IDE
 
 ---
 

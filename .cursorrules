@@ -1,0 +1,212 @@
+# LLMBox - Email-to-LLM Chat Service
+
+## Project Context
+
+This is an **email-to-LLM chat service** that allows users to interact with AI (GPT-4/GPT-3.5) through email. Built with Supabase Edge Functions (Deno runtime), SendGrid for email handling, and OpenAI for LLM responses.
+
+### Tech Stack
+- **Runtime:** Deno + TypeScript (Supabase Edge Functions)
+- **Email:** SendGrid (Inbound Parse + Send API)
+- **LLM:** OpenAI API (gpt-4o-mini, gpt-4o)
+- **Infrastructure:** Supabase (serverless, no database in MVP)
+- **Web:** Next.js 14 + React + TailwindCSS
+- **Testing:** Deno test framework
+
+### Project Structure
+```
+llmbox/
+├── supabase/functions/email-webhook/  # Main serverless function
+├── tests/                             # Unit and integration tests
+├── web/                               # Next.js landing page
+├── docs/                              # Documentation
+│   ├── prd.md                         # Product requirements
+│   ├── prd/                           # Detailed PRD sections
+│   └── architecture.md                # System architecture
+└── README.md                          # Main entry point
+```
+
+## Coding Standards
+
+### TypeScript Standards
+- **Strict Mode:** Always enabled (`strict: true`)
+- **Explicit Types:** All functions must have explicit return types
+- **No `any`:** Use proper typing or `unknown` when necessary
+- **Interfaces over Types:** Prefer interfaces for object shapes
+
+### Code Style
+- **Formatting:** Use Deno fmt (lineWidth: 100, singleQuote: true)
+- **Linting:** Deno lint with recommended rules
+- **Early Returns:** Use early returns for better readability
+- **Descriptive Names:** Use clear, descriptive variable and function names
+- **Event Handlers:** Prefix with `handle` (e.g., `handleClick`, `handleKeyDown`)
+- **Constants:** Use `const` instead of `function` for function expressions
+
+### React/Next.js Standards
+- **'use client':** Required for client components
+- **Class Names:** Use `class:` directive instead of ternary operators when possible
+- **Imports:** Organize imports (React → components → utilities → styles)
+- **Props:** Define TypeScript interfaces for all component props
+- **Hooks:** Follow React hooks rules of use
+
+### Logging Standards
+- **Never use `console.log`:** Use the structured logger module instead
+- **Structured Logging:** All logs must be JSON format
+- **Log Levels:** DEBUG, INFO, WARN, ERROR, CRITICAL
+- **Context:** Include correlation IDs (messageId) in all logs
+
+### Error Handling
+- **Try-Catch:** All external API calls must be wrapped in try-catch
+- **Retry Logic:** Use exponential backoff for retries
+- **Error Types:** Use custom error types from `errors.ts`
+- **User-Facing Errors:** Never expose internal errors or API keys
+
+### API Integration
+- **OpenAI:** Use official @openai/openai library
+- **SendGrid:** Use official @sendgrid/mail library
+- **Timeouts:** Always set reasonable timeouts
+- **Rate Limiting:** Handle 429 responses with retries
+
+### Testing Standards
+- **Unit Tests:** Test pure functions and business logic
+- **Integration Tests:** Test external API integrations (may incur costs)
+- **Coverage:** Aim for >80% code coverage
+- **Mocking:** Use Deno mocks for external services in unit tests
+- **Assertions:** Use descriptive assertion messages
+
+### Security Standards
+- **No Hardcoded Secrets:** Use environment variables/Supabase secrets
+- **Input Validation:** Validate all user inputs
+- **Sanitization:** Sanitize email content before sending
+- **Webhook Verification:** Verify SendGrid webhook signatures (planned for Epic 2)
+
+### Performance Standards
+- **Target Times:**
+  - Webhook parsing: < 2 seconds
+  - LLM API call: < 20 seconds
+  - Email sending: < 5 seconds
+  - Total: < 30 seconds
+- **Monitoring:** Log slow operations with warnings
+- **Optimization:** Profile before optimizing
+
+### Git Commit Standards
+- **Format:** `<type>(<scope>): <description>`
+- **Types:** feat, fix, docs, style, refactor, test, chore
+- **Examples:**
+  - `feat(webhook): add email threading support`
+  - `fix(llm): handle rate limit errors`
+  - `docs(readme): update deployment guide`
+
+### File Organization
+- **One Component Per File:** Each React component in its own file
+- **Named Exports:** Prefer named exports over default exports
+- **File Naming:** Use PascalCase for components, camelCase for utilities
+- **Colocate Tests:** Place test files next to the code they test
+
+## Development Workflow
+
+### Before Committing
+```bash
+deno task check:all  # Runs fmt, lint, type-check, and tests
+```
+
+### Common Commands
+```bash
+# Development
+deno task deploy      # Deploy to Supabase
+deno task logs        # View logs
+deno task logs:tail   # Live tail logs
+
+# Testing
+deno task test        # All tests
+deno task test:unit   # Unit tests only
+deno task test:integration  # Integration tests (requires API keys)
+
+# Web Development
+deno task web:dev     # Start web dev server
+deno task web:build   # Build web for production
+```
+
+## API Credentials
+
+### Required Environment Variables
+- `OPENAI_API_KEY` - OpenAI API key
+- `SENDGRID_API_KEY` - SendGrid API key
+- `SERVICE_EMAIL_ADDRESS` - Verified sender email
+- `OPENAI_MODEL` - Model to use (gpt-4o-mini, gpt-4o)
+- `LOG_LEVEL` - Logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)
+
+### Setting Secrets
+```bash
+# Via Deno tasks
+deno task secrets:set:key OPENAI_API_KEY=sk-...
+
+# Via Supabase CLI
+supabase secrets set OPENAI_API_KEY=sk-... --project-ref nopocimtfthppwssohty
+```
+
+## Architecture Principles
+
+### Stateless Design (MVP)
+- No database persistence
+- Each email processed independently
+- No user authentication
+- Thread support via email headers only
+
+### Serverless First
+- Use Supabase Edge Functions
+- Automatic scaling
+- Pay-per-use pricing
+- No server management
+
+### External API Integration
+- Retry logic with exponential backoff
+- Timeout configuration
+- Rate limit handling
+- Comprehensive error handling
+
+### Observability
+- Structured JSON logging
+- Correlation IDs for request tracing
+- Performance monitoring
+- Error tracking
+
+## Important Notes
+
+- **Web Search:** LLM has built-in web search capability (enabled by default)
+- **Email Threading:** Maintains conversation context via email headers
+- **Error Emails:** Users receive friendly error messages on failures
+- **No Database:** MVP is stateless; database planned for post-MVP
+- **Monorepo:** Single repository for Edge Functions, tests, and web app
+
+## Documentation
+
+- **Main README:** Project overview and setup
+- **CLAUDE.md:** AI assistant context
+- **WEB-PROJECT-SUMMARY.md:** Web landing page documentation
+- **docs/prd.md:** Product requirements
+- **docs/architecture.md:** System architecture
+- **tests/integration/README.md:** Integration testing guide
+
+## Dependencies
+
+### Edge Function Dependencies
+- `@openai/openai` - Official OpenAI library
+- `@sendgrid/mail` - Official SendGrid library
+- Standard Deno libraries
+
+### Web Dependencies
+- Next.js 14 (App Router)
+- React 18
+- TailwindCSS 3
+- TypeScript 5
+- Lucide React (icons)
+
+## Post-MVP Features (Planned)
+
+- Conversation history (Supabase PostgreSQL)
+- User authentication
+- Rate limiting and abuse prevention
+- Webhook signature verification
+- Enhanced monitoring and alerting
+- Multiple LLM providers
+

@@ -53,41 +53,14 @@ export interface LLMResponse {
 }
 
 /**
- * OpenAI Chat Completions API request structure
+ * Note: OpenAI API request/response structures are now handled
+ * by the official npm:openai library (openai@6.2.0)
+ * We use the Responses API which provides a simpler interface:
+ * - Input: Simple string input instead of messages array
+ * - Output: response.output_text for the generated text
+ * - Tools: Built-in web_search_preview support
+ * No custom interfaces needed for OpenAI API interactions
  */
-export interface OpenAICompletionRequest {
-  model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant' | 'developer';
-    content: string;
-  }>;
-  max_tokens?: number;
-  temperature?: number;
-}
-
-/**
- * OpenAI Chat Completions API response structure
- */
-export interface OpenAICompletionResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: string;
-      content: string | null;
-      refusal?: string | null;
-    };
-    finish_reason: string;
-  }>;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
 
 /**
  * Outgoing email to be sent via SendGrid
@@ -111,4 +84,7 @@ export interface OutgoingEmail {
  * Note: SendGrid Send API request/response structures are now handled
  * by the official @sendgrid/mail library (npm:@sendgrid/mail@8.1.6)
  * No custom interfaces needed for SendGrid API interactions
+ *
+ * Note: OpenAI API structures are handled by npm:openai@6.2.0
+ * Using Responses API for simpler interface with built-in web search
  */
