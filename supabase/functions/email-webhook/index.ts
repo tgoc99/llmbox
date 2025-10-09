@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { parseIncomingEmail, ValidationError } from './emailParser.ts';
-import { formatOutgoingEmail, sendEmail } from './emailSender.ts';
+import { formatOutgoingEmail, sendEmail, sendNotificationEmail } from './emailSender.ts';
 import { getGenericErrorEmail } from './errorTemplates.ts';
 import { logError, logInfo, logWarn } from './logger.ts';
 import { generateResponse } from './llmClient.ts';
@@ -17,6 +17,15 @@ import {
   checkOperationThreshold,
   checkTotalProcessingThreshold,
 } from './performanceMonitor.ts';
+import { checkUserLimit, trackUsage, isSubscriptionActive } from './usageTracker.ts';
+import {
+  getLimitExceededSubject,
+  getLimitExceededHtmlBody,
+  getLimitExceededTextBody,
+  getSubscriptionInactiveSubject,
+  getSubscriptionInactiveHtmlBody,
+  getSubscriptionInactiveTextBody,
+} from './limitEmailTemplate.ts';
 
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
@@ -58,6 +67,72 @@ Deno.serve(async (req: Request) => {
     // Check if parsing took longer than 2 seconds
     checkOperationThreshold('webhook_parsing', parsingTime, 2000, email.messageId);
 
+    // Check user usage limits
+    const limitCheck = await checkUserLimit(email.from);
+
+    if (!limitCheck.allowed) {
+      // User has exceeded their limit - send limit exceeded email
+      logWarn('user_limit_exceeded', {
+        messageId: email.messageId,
+        email: email.from,
+        tier: limitCheck.user.tier,
+        costUsed: limitCheck.user.cost_used_usd,
+        costLimit: limitCheck.user.cost_limit_usd,
+      });
+
+      try {
+        await sendNotificationEmail({
+          to: email.from,
+          subject: getLimitExceededSubject(),
+          html: getLimitExceededHtmlBody(limitCheck.user),
+          text: getLimitExceededTextBody(limitCheck.user),
+          replyTo: email.to,
+        });
+        logInfo('limit_exceeded_email_sent', {
+          messageId: email.messageId,
+          recipient: email.from,
+        });
+      } catch (error) {
+        logError('failed_to_send_limit_email', {
+          messageId: email.messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      return createSuccessResponse(email.messageId);
+    }
+
+    // Check if paid user has active subscription
+    if (!isSubscriptionActive(limitCheck.user)) {
+      logWarn('subscription_inactive', {
+        messageId: email.messageId,
+        email: email.from,
+        tier: limitCheck.user.tier,
+        subscriptionStatus: limitCheck.user.subscription_status,
+      });
+
+      try {
+        await sendNotificationEmail({
+          to: email.from,
+          subject: getSubscriptionInactiveSubject(),
+          html: getSubscriptionInactiveHtmlBody(limitCheck.user),
+          text: getSubscriptionInactiveTextBody(limitCheck.user),
+          replyTo: email.to,
+        });
+        logInfo('subscription_inactive_email_sent', {
+          messageId: email.messageId,
+          recipient: email.from,
+        });
+      } catch (error) {
+        logError('failed_to_send_subscription_email', {
+          messageId: email.messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      return createSuccessResponse(email.messageId);
+    }
+
     // Generate LLM response with error handling
     perf.start('openai_call');
     let llmResponse;
@@ -79,6 +154,26 @@ Deno.serve(async (req: Request) => {
         tokenCount: llmResponse.tokenCount,
         completionTimeMs: llmTime,
         responseLength: llmResponse.content.length,
+      });
+
+      // Track usage and update user costs
+      const usageTracking = await trackUsage({
+        email: email.from,
+        messageId: email.messageId,
+        model: llmResponse.model,
+        usage: {
+          promptTokens: llmResponse.usage?.prompt_tokens || 0,
+          completionTokens: llmResponse.usage?.completion_tokens || 0,
+          totalTokens: llmResponse.tokenCount,
+        },
+      });
+
+      logInfo('usage_tracked', {
+        messageId: email.messageId,
+        email: email.from,
+        costUsd: usageTracking.cost.totalCost,
+        newTotalCost: usageTracking.newTotalCost,
+        remainingBudget: usageTracking.remainingBudget,
       });
 
       // Check if LLM call took longer than 20 seconds
