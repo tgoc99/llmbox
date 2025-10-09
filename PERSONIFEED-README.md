@@ -109,7 +109,7 @@ deno task db:push
 # Set required environment variables
 deno task secrets:set:key OPENAI_API_KEY=sk-...
 deno task secrets:set:key SENDGRID_API_KEY=SG...
-deno task secrets:set:key PERSONIFEED_EMAIL_DOMAIN=mail.llmbox.pro
+deno task secrets:set:key PERSONIFEED_EMAIL_DOMAIN=personifeed.llmbox.pro
 ```
 
 ### 4. Deploy Functions
