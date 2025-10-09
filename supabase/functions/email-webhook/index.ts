@@ -21,6 +21,7 @@ import {
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
   let messageId = 'unknown';
+  let formData: FormData | null = null;
 
   try {
     // Check request method
@@ -30,7 +31,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body as FormData
-    const formData = await req.formData();
+    formData = await req.formData();
 
     // Log webhook received
     logInfo('webhook_received', {
@@ -85,7 +86,7 @@ Deno.serve(async (req: Request) => {
       checkOperationThreshold('openai_call', llmTime, 20000, email.messageId);
     } catch (error) {
       const llmTime = perf.end('openai_call');
-      errorEmail = handleOpenAIError(error, email, llmTime);
+      errorEmail = handleOpenAIError(error, email, llmTime, formData);
     }
 
     // Format outgoing email (either LLM response or error)
@@ -115,7 +116,7 @@ Deno.serve(async (req: Request) => {
       }
     } catch (error) {
       perf.end('email_send');
-      handleSendGridError(error, email.messageId);
+      handleSendGridError(error, email.messageId, formData);
       // Do NOT send error email to user (prevents email loop)
       // Still return 200 to SendGrid webhook
     }
@@ -148,6 +149,14 @@ Deno.serve(async (req: Request) => {
     // Always return 200 OK to SendGrid webhook
     return createSuccessResponse(email.messageId);
   } catch (error) {
+    // Serialize formData to log with error
+    const formDataPayload: Record<string, unknown> = {};
+    if (formData) {
+      for (const [key, value] of formData.entries()) {
+        formDataPayload[key] = value instanceof File ? `[File: ${value.name}]` : value;
+      }
+    }
+
     // Handle validation errors (return 400)
     if (error instanceof ValidationError) {
       logWarn('validation_error', {
@@ -155,6 +164,7 @@ Deno.serve(async (req: Request) => {
         message: error.message,
         context: error.context,
         processingTimeMs: perf.getTotalDuration(),
+        fullPayload: formDataPayload,
       });
 
       return createValidationErrorResponse(error.message, error.context);
@@ -166,6 +176,7 @@ Deno.serve(async (req: Request) => {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       processingTimeMs: perf.getTotalDuration(),
+      fullPayload: formDataPayload,
     });
 
     // Return 200 to prevent SendGrid retry loop

@@ -91,7 +91,21 @@ export const parseReplyEmail = (
 
   // Validate required fields
   if (!from || !to || !text) {
-    throw new ValidationError('Missing required email fields (from, to, or text)');
+    // Serialize full formData for debugging
+    const fullPayload: Record<string, unknown> = {};
+    for (const [key, value] of formData.entries()) {
+      fullPayload[key] = value instanceof File ? `[File: ${value.name}]` : value;
+    }
+
+    const missingFields: string[] = [];
+    if (!from) missingFields.push('from');
+    if (!to) missingFields.push('to');
+    if (!text) missingFields.push('text');
+
+    throw new ValidationError(
+      `Missing required email fields (${missingFields.join(', ')})`,
+      { missingFields, availableFields: Array.from(formData.keys()), fullPayload },
+    );
   }
 
   // Extract clean email addresses

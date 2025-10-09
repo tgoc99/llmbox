@@ -142,6 +142,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
           messageId: email.inReplyTo,
           statusCode,
           error: errorBody,
+          stack: error.stack,
         });
       }
       // Bad request (400) - log as ERROR
@@ -150,6 +151,10 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
           messageId: email.inReplyTo,
           statusCode,
           error: errorBody,
+          stack: error.stack,
+          to: email.to,
+          from: email.from,
+          subject: email.subject,
         });
       }
       // Other errors
@@ -160,6 +165,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
           error: error.message,
           statusCode,
           errorBody,
+          stack: error.stack,
         });
       }
     } else {
@@ -168,6 +174,7 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
         messageId: email.inReplyTo,
         to: email.to,
         error: error.message || String(error),
+        stack: error.stack,
       });
     }
     throw error;

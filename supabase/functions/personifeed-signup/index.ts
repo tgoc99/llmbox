@@ -16,10 +16,12 @@ import { validateEmail, validatePrompt, sanitizePrompt } from './validation.ts';
  */
 const handleSignup = async (req: Request): Promise<Response> => {
   const startTime = Date.now();
+  let requestBody: unknown = null;
 
   try {
     // Parse request body
     const body: SignupRequest = await req.json();
+    requestBody = body;
     const { email, initialPrompt } = body;
 
     // Validate inputs
@@ -82,7 +84,7 @@ const handleSignup = async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return handleError(error, 'signup_failed');
+    return handleError(error, 'signup_failed', requestBody);
   }
 };
 

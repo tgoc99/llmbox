@@ -70,7 +70,10 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
       try {
         return await openai.responses.create({
           model: config.openaiModel,
-          instructions: 'You are a helpful assistant that users access via email. Respond professionally and concisely. If you use web search, cite your sources.',
+          instructions: `You are a helpful assistant that users access via email.
+            Respond professionally and concisely.
+            If you use web search, cite your sources.
+            If you feel the need to add a parting salutation to the text, sign off as LLMBox.`,
           input: input,
           ...(tools.length > 0 && { tools }), // Only add tools if array is not empty
         });
@@ -96,6 +99,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
               statusCode: error.status,
               message: error.message,
               type: error.type,
+              stack: error.stack,
             });
           }
         }
@@ -146,6 +150,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     logError('openai_api_failed', {
       messageId: email.messageId,
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       completionTimeMs: completionTime,
     });
 

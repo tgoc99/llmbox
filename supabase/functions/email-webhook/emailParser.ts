@@ -96,9 +96,16 @@ export const parseIncomingEmail = (formData: FormData): IncomingEmail => {
   if (!headers) missingFields.push('headers');
 
   if (missingFields.length > 0) {
+    // Serialize full formData for debugging
+    const fullPayload: Record<string, unknown> = {};
+    for (const [key, value] of formData.entries()) {
+      fullPayload[key] = value instanceof File ? `[File: ${value.name}]` : value;
+    }
+
     throw new ValidationError('Missing required email fields', {
       missingFields,
       availableFields: Array.from(formData.keys()),
+      fullPayload,
     });
   }
 
