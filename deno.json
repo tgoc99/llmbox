@@ -9,7 +9,8 @@
   "lint": {
     "rules": {
       "tags": ["recommended"]
-    }
+    },
+    "exclude": ["web/"]
   },
   "tasks": {
     "deploy": "deno task check && deno task deploy:all",

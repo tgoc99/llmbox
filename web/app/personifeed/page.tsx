@@ -1,7 +1,6 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useState } from 'react';
-import process from 'node:process';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ||
   'https://nopocimtfthppwssohty.supabase.co';

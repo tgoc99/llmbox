@@ -2,9 +2,11 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@*": "1.0.15",
+    "jsr:@std/assert@1": "1.0.15",
     "jsr:@std/assert@^1.0.15": "1.0.15",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/testing@*": "1.0.16",
+    "jsr:@std/testing@1": "1.0.16",
     "jsr:@supabase/functions-js@*": "2.5.0",
     "jsr:@supabase/functions-js@2": "2.5.0",
     "npm:@sendgrid/mail@8.1.6": "8.1.6",
