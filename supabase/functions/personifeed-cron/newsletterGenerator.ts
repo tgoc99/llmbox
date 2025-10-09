@@ -127,7 +127,9 @@ Guidelines:
       userId: user.id,
       email: user.email,
       error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
+      customizationsCount: customizations.length,
     });
 
     throw new LLMError('Failed to generate newsletter', {

@@ -8,14 +8,29 @@ import {
 import type { ParsedEmail, OutgoingEmail } from './types.ts';
 
 /**
+ * Serialize FormData to object for logging
+ */
+const serializeFormData = (formData: FormData | null): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {};
+  if (formData) {
+    for (const [key, value] of formData.entries()) {
+      payload[key] = value instanceof File ? `[File: ${value.name}]` : value;
+    }
+  }
+  return payload;
+};
+
+/**
  * Handles OpenAI errors and returns appropriate error email
  */
 export const handleOpenAIError = (
   error: unknown,
   email: ParsedEmail,
   processingTimeMs?: number,
+  formData?: FormData | null,
 ): OutgoingEmail => {
   const errorMessage = error instanceof Error ? error.message : String(error);
+  const fullPayload = serializeFormData(formData || null);
 
   // Detect error type and log appropriately
   if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
@@ -24,6 +39,7 @@ export const handleOpenAIError = (
       messageId: email.messageId,
       error: errorMessage,
       processingTimeMs,
+      fullPayload,
     });
     return getRateLimitErrorEmail(email);
   }
@@ -34,6 +50,7 @@ export const handleOpenAIError = (
       messageId: email.messageId,
       error: errorMessage,
       processingTimeMs,
+      fullPayload,
     });
     return getTimeoutErrorEmail(email);
   }
@@ -43,6 +60,7 @@ export const handleOpenAIError = (
     logCritical('openai_auth_error', {
       messageId: email.messageId,
       error: errorMessage,
+      fullPayload,
     });
     return getGenericErrorEmail(email);
   }
@@ -52,6 +70,7 @@ export const handleOpenAIError = (
     messageId: email.messageId,
     error: errorMessage,
     stack: error instanceof Error ? error.stack : undefined,
+    fullPayload,
   });
   return getOpenAIErrorEmail(email, error as Error);
 };
@@ -63,14 +82,17 @@ export const handleOpenAIError = (
 export const handleSendGridError = (
   error: unknown,
   messageId: string,
+  formData?: FormData | null,
 ): void => {
   const errorMessage = error instanceof Error ? error.message : String(error);
+  const fullPayload = serializeFormData(formData || null);
 
   // Check error type for SendGrid
   if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
     logWarn('sendgrid_rate_limit', {
       messageId,
       error: errorMessage,
+      fullPayload,
     });
     return;
   }
@@ -79,6 +101,7 @@ export const handleSendGridError = (
     logCritical('sendgrid_auth_error', {
       messageId,
       error: errorMessage,
+      fullPayload,
     });
     return;
   }
@@ -87,6 +110,8 @@ export const handleSendGridError = (
     logError('sendgrid_bad_request', {
       messageId,
       error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      fullPayload,
     });
     return;
   }
@@ -95,6 +120,8 @@ export const handleSendGridError = (
     logError('sendgrid_server_error', {
       messageId,
       error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      fullPayload,
     });
     return;
   }
@@ -102,6 +129,8 @@ export const handleSendGridError = (
   logError('sendgrid_send_failed', {
     messageId,
     error: errorMessage,
+    stack: error instanceof Error ? error.stack : undefined,
+    fullPayload,
   });
 };
 

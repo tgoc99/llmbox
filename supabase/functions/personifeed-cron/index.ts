@@ -18,10 +18,11 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
     const customizations = await getUserCustomizations(user.id);
 
     if (customizations.length === 0) {
-      logError('no_customizations_found', {
-        userId: user.id,
-        email: user.email,
-      });
+    logError('no_customizations_found', {
+      userId: user.id,
+      email: user.email,
+      message: 'User has no customizations stored',
+    });
       return false;
     }
 
@@ -56,6 +57,7 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
         userId: user.id,
         email: user.email,
         dbError: dbError instanceof Error ? dbError.message : String(dbError),
+        dbStack: dbError instanceof Error ? dbError.stack : undefined,
       });
     }
 
@@ -63,6 +65,7 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
       userId: user.id,
       email: user.email,
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     return false;

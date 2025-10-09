@@ -28,14 +28,26 @@ const validateFeedback = (content: string): void => {
 };
 
 /**
+ * Serialize FormData to object for logging
+ */
+const serializeFormData = (formData: FormData): Record<string, unknown> => {
+  const payload: Record<string, unknown> = {};
+  for (const [key, value] of formData.entries()) {
+    payload[key] = value instanceof File ? `[File: ${value.name}]` : value;
+  }
+  return payload;
+};
+
+/**
  * Main handler for reply emails
  */
 const handleReply = async (req: Request): Promise<Response> => {
   const startTime = Date.now();
+  let formData: FormData | null = null;
 
   try {
     // Parse form data from SendGrid webhook
-    const formData = await req.formData();
+    formData = await req.formData();
 
     // Parse email
     const { from, to, userId, body, messageId } = parseReplyEmail(formData);
@@ -113,10 +125,15 @@ const handleReply = async (req: Request): Promise<Response> => {
       },
     );
   } catch (error) {
+    // Serialize formData for logging
+    const fullPayload = formData ? serializeFormData(formData) : {};
+
     // Log error but return 200 to SendGrid to prevent retry loops
     logError('reply_processing_failed', {
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
+      fullPayload,
     });
 
     // Return 200 even on error to prevent SendGrid retries

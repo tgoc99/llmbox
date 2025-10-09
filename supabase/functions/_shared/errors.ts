@@ -57,12 +57,17 @@ export class EmailError extends CustomError {
 /**
  * Handle error and return JSON response
  */
-export const handleError = (error: unknown, event: string = 'unknown_error'): Response => {
+export const handleError = (
+  error: unknown,
+  event: string = 'unknown_error',
+  payload?: unknown,
+): Response => {
   if (error instanceof CustomError) {
     logError(event, {
       error: error.message,
       statusCode: error.statusCode,
       context: error.context,
+      fullPayload: payload,
     });
 
     return new Response(
@@ -82,6 +87,7 @@ export const handleError = (error: unknown, event: string = 'unknown_error'): Re
   logError(event, {
     error: errorMessage,
     stack: error instanceof Error ? error.stack : undefined,
+    fullPayload: payload,
   });
 
   return new Response(

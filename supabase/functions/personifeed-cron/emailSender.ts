@@ -94,6 +94,7 @@ Reply to this email to customize future newsletters.`;
       userId: user.id,
       email: user.email,
       error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
     });
 
@@ -167,6 +168,7 @@ export const sendConfirmationEmail = async (
     logError('confirmation_send_failed', {
       email: userEmail,
       error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
     });
 

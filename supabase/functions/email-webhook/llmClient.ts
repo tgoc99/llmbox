@@ -96,6 +96,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
               statusCode: error.status,
               message: error.message,
               type: error.type,
+              stack: error.stack,
             });
           }
         }
@@ -146,6 +147,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     logError('openai_api_failed', {
       messageId: email.messageId,
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       completionTimeMs: completionTime,
     });
 
