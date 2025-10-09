@@ -105,10 +105,10 @@ const Hero = (): JSX.Element => {
                   &quot;Can you help me brainstorm ideas for my project?&quot;
                 </p>
               </div>
-              <div className='mt-4 pt-4 border-t border-gray-200'>
+              <div className='mt-4 pt-4 border-t border-gray-200 text-center'>
                 <a
                   href={`mailto:${emailAddress}`}
-                  className='inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-medium text-sm rounded-lg hover:bg-primary-700 transition-colors duration-200 w-full sm:w-auto justify-center'
+                  className='inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-medium text-sm rounded-lg hover:bg-primary-700 transition-colors duration-200 w-full sm:w-auto'
                 >
                   <Mail className='w-4 h-4' />
                   <span>Open Email Client</span>
