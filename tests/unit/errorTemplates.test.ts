@@ -2,7 +2,7 @@
  * Unit tests for error email templates
  */
 
-import { assertEquals } from 'jsr:@std/assert';
+import { assertEquals } from 'jsr:@std/assert@1';
 import {
   getGenericErrorEmail,
   getOpenAIErrorEmail,
@@ -37,8 +37,7 @@ Deno.test('getOpenAIErrorEmail - creates correct error email structure', () => {
   // Set required env var
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
 
-  const error = new Error('OpenAI API error');
-  const errorEmail = getOpenAIErrorEmail(mockIncomingEmail, error);
+  const errorEmail = getOpenAIErrorEmail(mockIncomingEmail);
 
   assertEquals(errorEmail.from, 'assistant@test.com');
   assertEquals(errorEmail.to, 'user@example.com');
@@ -101,7 +100,7 @@ Deno.test('error emails - maintain threading with existing thread', () => {
 Deno.test('error emails - do not double Re: prefix', () => {
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
 
-  const errorEmail = getOpenAIErrorEmail(mockIncomingEmailWithThread, new Error('test'));
+  const errorEmail = getOpenAIErrorEmail(mockIncomingEmailWithThread);
 
   assertEquals(errorEmail.subject, 'Re: Test Question');
 });
@@ -109,7 +108,7 @@ Deno.test('error emails - do not double Re: prefix', () => {
 Deno.test('error emails - are professional and clear', () => {
   Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
 
-  const errorEmail = getOpenAIErrorEmail(mockIncomingEmail, new Error('test'));
+  const errorEmail = getOpenAIErrorEmail(mockIncomingEmail);
 
   // Check message is polite and professional
   assertEquals(errorEmail.body.includes('Dear User'), true);
@@ -132,10 +131,13 @@ Deno.test('error emails - ensure message IDs have angle brackets', () => {
     references: ['ref1@example.com', '<ref2@example.com>'], // Mixed format
   };
 
-  const errorEmail = getOpenAIErrorEmail(emailWithoutBrackets, new Error('test'));
+  const errorEmail = getOpenAIErrorEmail(emailWithoutBrackets);
 
   // All references should have angle brackets
-  assertEquals(errorEmail.references.every((ref) => ref.startsWith('<') && ref.endsWith('>')), true);
+  assertEquals(
+    errorEmail.references.every((ref) => ref.startsWith('<') && ref.endsWith('>')),
+    true,
+  );
   assertEquals(errorEmail.references.includes('<ref1@example.com>'), true);
   assertEquals(errorEmail.references.includes('<ref2@example.com>'), true);
   assertEquals(errorEmail.references.includes('<test123@example.com>'), true);
@@ -158,4 +160,3 @@ Deno.test('error emails - filter out empty references', () => {
   assertEquals(errorEmail.references.includes('<valid@example.com>'), true);
   assertEquals(errorEmail.references.includes('<test123@example.com>'), true);
 });
-

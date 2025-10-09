@@ -112,4 +112,3 @@ export const logDebug = (event: string, context: Record<string, unknown> = {}): 
 export const truncateBody = (body: string): string => {
   return truncate(body, 100);
 };
-

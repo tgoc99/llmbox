@@ -4,10 +4,16 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { logInfo, logError } from '../_shared/logger.ts';
-import { handleError, ValidationError } from '../_shared/errors.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
+import { ValidationError } from '../_shared/errors.ts';
 import { parseReplyEmail } from './emailParser.ts';
-import { getUserById, getUserByEmail, createUser, addFeedback, addInitialCustomization } from './database.ts';
+import {
+  addFeedback,
+  addInitialCustomization,
+  createUser,
+  getUserByEmail,
+  getUserById,
+} from './database.ts';
 import { sendConfirmationEmail } from '../_shared/emailSender.ts';
 
 /**
@@ -153,15 +159,16 @@ const handleReply = async (req: Request): Promise<Response> => {
 /**
  * Serve HTTP requests
  */
-serve(async (req: Request): Promise<Response> => {
+serve((req: Request): Promise<Response> => {
   // Only accept POST requests
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return Promise.resolve(
+      new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   }
 
   return handleReply(req);
 });
-

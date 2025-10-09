@@ -2,7 +2,9 @@
 
 ## Overview
 
-Add a double opt-in confirmation email flow to verify user email addresses before starting newsletter delivery. This improves email deliverability, reduces spam complaints, meets best practices, and ensures users genuinely want to receive the newsletter.
+Add a double opt-in confirmation email flow to verify user email addresses before starting
+newsletter delivery. This improves email deliverability, reduces spam complaints, meets best
+practices, and ensures users genuinely want to receive the newsletter.
 
 ## Goals
 
@@ -73,6 +75,7 @@ COMMENT ON COLUMN users.verified_at IS 'When user verified their email';
 ```
 
 **Updated users table schema**:
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -97,12 +100,14 @@ CREATE TABLE users (
 **Location**: `supabase/functions/personifeed-verify/`
 
 **Files**:
+
 - `index.ts` - Main handler
 - `database.ts` - Database operations
 - `validation.ts` - Token validation
 - `emailSender.ts` - Welcome email
 
 **API Contract**:
+
 ```typescript
 // POST /functions/v1/personifeed-verify
 {
@@ -118,6 +123,7 @@ CREATE TABLE users (
 ```
 
 **Token Security**:
+
 - Use cryptographically secure random token (32 bytes, base64)
 - Store hashed version in database (SHA-256)
 - Token expires after 7 days
@@ -125,6 +131,7 @@ CREATE TABLE users (
 - Include rate limiting (10 attempts per hour per token)
 
 **Database Operations**:
+
 ```typescript
 // Verify user by token
 const verifyUser = async (token: string): Promise<User | null> => {
@@ -136,10 +143,10 @@ const verifyUser = async (token: string): Promise<User | null> => {
       verified: true,
       active: true,
       verified_at: new Date().toISOString(),
-      verification_token: null  // Invalidate token
+      verification_token: null, // Invalidate token
     })
     .eq('verification_token', hashedToken)
-    .eq('verified', false)  // Prevent re-verification
+    .eq('verified', false) // Prevent re-verification
     .select()
     .maybeSingle();
 
@@ -168,7 +175,7 @@ const isTokenExpired = (sentAt: Date): boolean => {
 const createUser = async (email: string): Promise<User> => {
   const { data } = await supabase
     .from('users')
-    .insert({ email, active: true })  // Activated immediately
+    .insert({ email, active: true }) // Activated immediately
     .select()
     .single();
   return data;
@@ -184,10 +191,10 @@ const createUser = async (email: string): Promise<User> => {
     .from('users')
     .insert({
       email,
-      active: false,              // Starts inactive
-      verified: false,            // Unverified
+      active: false, // Starts inactive
+      verified: false, // Unverified
       verification_token: hashedToken,
-      verification_sent_at: new Date().toISOString()
+      verification_sent_at: new Date().toISOString(),
     })
     .select()
     .single();
@@ -200,6 +207,7 @@ const createUser = async (email: string): Promise<User> => {
 ```
 
 **Token Generation**:
+
 ```typescript
 const generateVerificationToken = (): string => {
   // Generate 32 random bytes, encode as base64url
@@ -223,7 +231,7 @@ const hashToken = (token: string): string => {
 const sendConfirmationEmail = async (
   userId: string,
   email: string,
-  token: string
+  token: string,
 ): Promise<void> => {
   const startTime = Date.now();
 
@@ -232,7 +240,7 @@ const sendConfirmationEmail = async (
 
     const verifyUrl = `https://personifeed.llmbox.pro/verify?token=${token}`;
 
-    const subject = "Confirm your personi[feed] subscription";
+    const subject = 'Confirm your personi[feed] subscription';
 
     const emailBody = `
 Welcome to personi[feed]!
@@ -293,10 +301,11 @@ Didn't sign up? You can safely ignore this email.
 ```
 
 **Optional: Welcome email after verification**:
+
 ```typescript
 const sendWelcomeEmail = async (
   userId: string,
-  email: string
+  email: string,
 ): Promise<void> => {
   const subject = "You're all set! 🎉";
   const body = `
@@ -355,12 +364,13 @@ const getAllActiveUsers = async (): Promise<User[]> => {
     .from('users')
     .select('*')
     .eq('active', true)
-    .eq('verified', true);  // Only verified users
+    .eq('verified', true); // Only verified users
   return data || [];
 };
 ```
 
 **Add logging for skipped users**:
+
 ```typescript
 logInfo('users_fetched', {
   count: users.length,
@@ -373,6 +383,7 @@ logInfo('users_fetched', {
 **Purpose**: Handle email verification from links
 
 **Features**:
+
 - Parse token from URL query parameter
 - Call verify API with token
 - Show verification status (loading, success, error)
@@ -380,6 +391,7 @@ logInfo('users_fetched', {
 - Handle expired/invalid tokens
 
 **UI States**:
+
 1. **Loading**: "Verifying your email..."
 2. **Success**: "Email verified! Your first newsletter arrives tomorrow at 11am ET."
 3. **Error (invalid token)**: "This verification link is invalid."
@@ -387,10 +399,11 @@ logInfo('users_fetched', {
 5. **Error (already verified)**: "This email is already verified!"
 
 **Implementation**:
+
 ```typescript
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type VerificationState = 'loading' | 'success' | 'error';
@@ -417,7 +430,7 @@ const VerifyPage = (): JSX.Element => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
-          }
+          },
         );
 
         const data = await response.json();
@@ -448,23 +461,25 @@ const VerifyPage = (): JSX.Element => {
 
 ```typescript
 // Current message:
-"Success! Your first newsletter arrives tomorrow at 11am ET."
+'Success! Your first newsletter arrives tomorrow at 11am ET.';
 
 // New message:
-"Check your email! We sent you a confirmation link to get started."
+'Check your email! We sent you a confirmation link to get started.';
 ```
 
 **Add explanatory text**:
+
 ```typescript
-<p className="text-sm text-gray-500 mt-2">
-  Click the link in the email to confirm your subscription.
-  Your first newsletter arrives the day after confirmation at 11am ET.
-</p>
+<p className='text-sm text-gray-500 mt-2'>
+  Click the link in the email to confirm your subscription. Your first newsletter arrives the day
+  after confirmation at 11am ET.
+</p>;
 ```
 
 ### Security Considerations
 
 #### Token Security
+
 - **Random Generation**: Use cryptographically secure random generator
 - **Hashing**: Store SHA-256 hash, never plaintext token
 - **Expiration**: 7-day expiration window
@@ -472,12 +487,14 @@ const VerifyPage = (): JSX.Element => {
 - **Rate Limiting**: 10 verification attempts per hour per token
 
 #### Preventing Abuse
+
 - **Email Validation**: Strict validation before sending
 - **Rate Limiting**: Max 3 signups per email per day
 - **Honeypot**: Add hidden field to signup form (future)
 - **CAPTCHA**: Add reCAPTCHA for high-volume signups (future)
 
 #### Token URL Safety
+
 - **Base64URL Encoding**: Use URL-safe characters (-, _, no =)
 - **HTTPS Only**: All verification links use HTTPS
 - **No Token Logging**: Never log full tokens in plaintext
@@ -587,6 +604,7 @@ NEXT_PUBLIC_PERSONIFEED_DOMAIN=personifeed.llmbox.pro
 ### Deployment Steps
 
 #### Phase 1: Database Migration
+
 1. Create migration file: `20251010000000_add_email_verification.sql`
 2. Review migration (especially UPDATE for existing users)
 3. Test migration on local Supabase instance
@@ -594,6 +612,7 @@ NEXT_PUBLIC_PERSONIFEED_DOMAIN=personifeed.llmbox.pro
 5. Verify schema changes in Supabase dashboard
 
 #### Phase 2: Backend (Edge Functions)
+
 1. Create `personifeed-verify` function
 2. Update `personifeed-signup` with confirmation flow
 3. Update `personifeed-cron` with verified filter
@@ -602,11 +621,13 @@ NEXT_PUBLIC_PERSONIFEED_DOMAIN=personifeed.llmbox.pro
 6. Test API endpoints directly (curl)
 
 #### Phase 3: Web Page
+
 1. Create verify page component
 2. Test locally: `deno task web:dev`
 3. Deploy to Vercel: `vercel deploy --prod`
 
 #### Phase 4: Testing & Monitoring
+
 1. Run integration tests
 2. Test with real email account
 3. Monitor logs for errors
@@ -660,24 +681,26 @@ ORDER BY date DESC;
 ### Handling Edge Cases
 
 #### 1. Existing Users (Re-signup)
+
 ```typescript
 // In personifeed-signup/index.ts
 if (existingUser) {
   if (existingUser.verified) {
     // Already verified - add customization as before
     await addCustomization(existingUser.id, prompt, 'initial');
-    return { message: "Welcome back! Updated your preferences." };
+    return { message: 'Welcome back! Updated your preferences.' };
   } else {
     // Unverified - resend confirmation email with new token
     const newToken = generateVerificationToken();
     await updateVerificationToken(existingUser.id, newToken);
     await sendConfirmationEmail(existingUser.id, email, newToken);
-    return { message: "Confirmation email resent. Check your inbox!" };
+    return { message: 'Confirmation email resent. Check your inbox!' };
   }
 }
 ```
 
 #### 2. Token Expiration Cleanup (Cron Job)
+
 ```sql
 -- Add cleanup query to a weekly cron job
 DELETE FROM users
@@ -686,6 +709,7 @@ WHERE verified = false
 ```
 
 #### 3. Rate Limiting Signups
+
 ```typescript
 // Prevent abuse: max 3 signups per email per day
 const checkSignupRateLimit = async (email: string): Promise<boolean> => {
@@ -702,6 +726,7 @@ const checkSignupRateLimit = async (email: string): Promise<boolean> => {
 ### Cost Impact
 
 **Additional costs**:
+
 - SendGrid: 1 confirmation email per signup (~3,000/month for 100 users)
   - Cost: $0 (within free tier of 100 emails/day)
 - Edge function invocations: 1 per verification (~3,000/month)
@@ -714,6 +739,7 @@ const checkSignupRateLimit = async (email: string): Promise<boolean> => {
 ### Compliance & Best Practices
 
 #### Double Opt-In Benefits
+
 - ✅ Prevents spam complaints
 - ✅ Improves email deliverability (sender reputation)
 - ✅ Ensures genuine user intent
@@ -721,11 +747,13 @@ const checkSignupRateLimit = async (email: string): Promise<boolean> => {
 - ✅ Better engagement rates (verified users are more engaged)
 
 #### GDPR Compliance
+
 - ✅ Explicit consent (user clicks verification link)
 - ✅ Clear communication (explains what they're signing up for)
 - ✅ Audit trail (verification timestamp stored)
 
 #### CAN-SPAM Compliance
+
 - ✅ Not required for transactional emails (verification is transactional)
 - ✅ Improves compliance for marketing emails (newsletters)
 
@@ -750,20 +778,21 @@ const checkSignupRateLimit = async (email: string): Promise<boolean> => {
 
 ### Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Confirmation emails in spam | High | Use authenticated domain, test spam filters |
-| Low verification rates | Medium | Clear messaging, email reminder after 3 days |
-| Token leakage | High | Use HTTPS, hash tokens, expire after 7 days |
-| Email delivery failures | Medium | Retry logic, monitor SendGrid delivery rates |
-| Database migration issues | High | Test on local instance, backup before migration |
-| User confusion | Medium | Clear messaging, FAQ, support email |
+| Risk                        | Impact | Mitigation                                      |
+| --------------------------- | ------ | ----------------------------------------------- |
+| Confirmation emails in spam | High   | Use authenticated domain, test spam filters     |
+| Low verification rates      | Medium | Clear messaging, email reminder after 3 days    |
+| Token leakage               | High   | Use HTTPS, hash tokens, expire after 7 days     |
+| Email delivery failures     | Medium | Retry logic, monitor SendGrid delivery rates    |
+| Database migration issues   | High   | Test on local instance, backup before migration |
+| User confusion              | Medium | Clear messaging, FAQ, support email             |
 
 ### Rollback Plan
 
 If verification causes major issues:
 
 1. **Database Rollback**:
+
 ```sql
 -- Revert schema changes
 ALTER TABLE users ALTER COLUMN active SET DEFAULT TRUE;
@@ -772,12 +801,14 @@ UPDATE users SET active = TRUE WHERE verified = FALSE;
 ```
 
 2. **Code Rollback**:
+
 - Deploy previous version of `personifeed-signup`
 - Deploy previous version of `personifeed-cron`
 - Remove `personifeed-verify` function
 - Revert web page changes
 
 3. **Communication**:
+
 - Email users who signed up but didn't verify
 - Apologize for confusion
 - Activate their accounts manually
@@ -785,6 +816,7 @@ UPDATE users SET active = TRUE WHERE verified = FALSE;
 ## File Changes Summary
 
 ### New Files
+
 ```
 supabase/migrations/
   └── 20251010000000_add_email_verification.sql  # Migration
@@ -809,6 +841,7 @@ docs/
 ```
 
 ### Modified Files
+
 ```
 supabase/functions/personifeed-signup/index.ts
   - Change user creation to set active=false, verified=false
@@ -848,6 +881,7 @@ PERSONIFEED-README.md
 ## Implementation Checklist
 
 ### Database
+
 - [ ] Create migration file
 - [ ] Review migration SQL
 - [ ] Test migration locally
@@ -857,6 +891,7 @@ PERSONIFEED-README.md
 - [ ] Test queries with new fields
 
 ### Backend
+
 - [ ] Create `personifeed-verify` Edge Function
 - [ ] Add token generation utility
 - [ ] Add token hashing utility
@@ -872,6 +907,7 @@ PERSONIFEED-README.md
 - [ ] Test API endpoints
 
 ### Frontend
+
 - [ ] Create verify page component
 - [ ] Add loading states
 - [ ] Add success/error states
@@ -881,6 +917,7 @@ PERSONIFEED-README.md
 - [ ] Deploy to Vercel
 
 ### Testing
+
 - [ ] Test signup → confirmation email sent
 - [ ] Test verification link → success
 - [ ] Test expired token → error
@@ -891,6 +928,7 @@ PERSONIFEED-README.md
 - [ ] Manual end-to-end test with real email
 
 ### Documentation
+
 - [ ] Update PERSONIFEED-README.md
 - [ ] Update user journey diagram
 - [ ] Document verification flow
@@ -899,6 +937,7 @@ PERSONIFEED-README.md
 - [ ] Document monitoring queries
 
 ### Monitoring
+
 - [ ] Set up verification rate alerts
 - [ ] Monitor email delivery rates
 - [ ] Track time-to-verify metrics
@@ -930,7 +969,8 @@ PERSONIFEED-README.md
 
 - Email Verification Best Practices: https://sendgrid.com/blog/email-verification-best-practices/
 - Double Opt-In Guide: https://www.campaignmonitor.com/resources/glossary/double-opt-in/
-- Token Security: https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
-- SendGrid Transactional Email: https://docs.sendgrid.com/ui/sending-email/how-to-send-email-with-dynamic-transactional-templates
+- Token Security:
+  https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
+- SendGrid Transactional Email:
+  https://docs.sendgrid.com/ui/sending-email/how-to-send-email-with-dynamic-transactional-templates
 - GDPR Email Consent: https://gdpr.eu/email-consent/
-

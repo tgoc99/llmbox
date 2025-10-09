@@ -2,18 +2,16 @@
 
 ## Document Information
 
-**Status:** MVP Complete - In Production
-**Project ID:** nopocimtfthppwssohty (Supabase)
-**Production URL:** https://llmbox.pro/personifeed
-**Email Domain:** mail.llmbox.pro
+**Status:** MVP Complete - In Production **Project ID:** nopocimtfthppwssohty (Supabase)
+**Production URL:** https://llmbox.pro/personifeed **Email Domain:** mail.llmbox.pro
 
 ### Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2025-10-09 | 1.2 | Updated with deployment instructions, quick reference, dynamic reply addresses, and production status | PM Agent |
-| 2025-10-09 | 1.1 | Updated to use shared Next.js app at llmbox.pro/personifeed route | PM Agent |
-| 2025-10-09 | 1.0 | Initial PRD | PM Agent |
+| Date       | Version | Description                                                                                           | Author   |
+| ---------- | ------- | ----------------------------------------------------------------------------------------------------- | -------- |
+| 2025-10-09 | 1.2     | Updated with deployment instructions, quick reference, dynamic reply addresses, and production status | PM Agent |
+| 2025-10-09 | 1.1     | Updated to use shared Next.js app at llmbox.pro/personifeed route                                     | PM Agent |
+| 2025-10-09 | 1.0     | Initial PRD                                                                                           | PM Agent |
 
 ---
 
@@ -21,19 +19,26 @@
 
 ### Goals
 
-1. **Daily personalized AI newsletters** - Users receive a custom AI-generated newsletter tailored to their interests every day at 11am ET
+1. **Daily personalized AI newsletters** - Users receive a custom AI-generated newsletter tailored
+   to their interests every day at 11am ET
 2. **Zero friction onboarding** - No password, no sign-in, just email + initial prompt
 3. **User-directed customization** - Users can reply to any newsletter to refine future content
-4. **Rapid MVP deployment** - Leverage existing llmbox infrastructure and code for fast time-to-market
+4. **Rapid MVP deployment** - Leverage existing llmbox infrastructure and code for fast
+   time-to-market
 5. **Scalable architecture** - Database-backed design supports growth and feature expansion
 
 ### Background Context
 
-Daily newsletters remain one of the highest-engagement content formats, yet most are generic and not personalized to individual preferences. personi[feed] bridges this gap by allowing users to define exactly what they want in their daily digest using natural language prompts.
+Daily newsletters remain one of the highest-engagement content formats, yet most are generic and not
+personalized to individual preferences. personi[feed] bridges this gap by allowing users to define
+exactly what they want in their daily digest using natural language prompts.
 
-The MVP focuses on **core functionality**: daily scheduled newsletter generation and email-based customization. By leveraging the existing llmbox codebase (OpenAI integration, SendGrid, Next.js), development time is drastically reduced.
+The MVP focuses on **core functionality**: daily scheduled newsletter generation and email-based
+customization. By leveraging the existing llmbox codebase (OpenAI integration, SendGrid, Next.js),
+development time is drastically reduced.
 
-Unlike llmbox (which is conversational and stateless), personi[feed] requires persistence to store user preferences and track customizations over time.
+Unlike llmbox (which is conversational and stateless), personi[feed] requires persistence to store
+user preferences and track customizations over time.
 
 ---
 
@@ -42,8 +47,10 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 ### Functional Requirements
 
 **FR1**: Landing page for newsletter signup ✅ Complete
+
 - Next.js landing page at `/personifeed` route with email input field
-- Large text area for initial prompt (e.g., "Send me the top 3 AI news stories, a motivational quote, and the weather in NYC")
+- Large text area for initial prompt (e.g., "Send me the top 3 AI news stories, a motivational
+  quote, and the weather in NYC")
 - Submit button to register for daily newsletter
 - No password or authentication required
 - Validates email format before submission
@@ -51,6 +58,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Character counter showing 0-2000 limit
 
 **FR2**: Store user preferences in database ✅ Complete
+
 - Save user email and initial prompt to Supabase PostgreSQL
 - Track when user signed up (created_at timestamp)
 - Store all customization prompts from reply emails
@@ -58,6 +66,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Active/inactive flag for user management
 
 **FR3**: Daily newsletter generation via cron job ✅ Complete
+
 - Supabase Edge Function triggered by cron at 11:00am ET daily
 - Fetch all active users from database
 - For each user, collect initial prompt + all customization feedback
@@ -67,6 +76,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Continue processing if individual user fails
 
 **FR4**: Email-based customization via replies ✅ Complete
+
 - Users can reply to any newsletter email
 - Reply sent to `reply+{userId}@mail.llmbox.pro` (dynamic address)
 - Reply email triggers Supabase Edge Function (SendGrid Inbound Parse webhook)
@@ -77,7 +87,9 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Do NOT generate new newsletter immediately
 
 **FR5**: Newsletter content generation ✅ Complete
-- System prompt: "You are creating a personalized daily newsletter. Use the user's preferences and any customization feedback to generate relevant, engaging content."
+
+- System prompt: "You are creating a personalized daily newsletter. Use the user's preferences and
+  any customization feedback to generate relevant, engaging content."
 - Combine user's initial prompt + all feedback strings into context for LLM
 - Generate newsletter with proper formatting (markdown or plain text)
 - Include date/time in newsletter header
@@ -85,6 +97,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Include footer: "Reply to this email to customize future newsletters"
 
 **FR6**: Dynamic reply addresses ✅ Complete
+
 - Each newsletter sent from `reply+{userId}@mail.llmbox.pro`
 - Enables efficient user identification from TO address
 - Proper email threading maintained
@@ -92,6 +105,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Fallback to email lookup if userId extraction fails
 
 **FR7**: Error handling ✅ Complete
+
 - Invalid email format on signup: Show error message on landing page
 - Duplicate email signup: Add new customization to existing user
 - User not found on reply: Create new user with reply as initial prompt
@@ -102,23 +116,27 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 ### Non-Functional Requirements
 
 **NFR1**: Performance targets ✅ Met
+
 - Landing page load time: < 2 seconds
 - Newsletter generation per user: < 30 seconds (typically ~15-20s)
 - Total cron job execution time: < 5 minutes for 100 users (typically ~3-4 min)
 - Reply confirmation email: < 5 seconds (typically ~2s)
 
 **NFR2**: Database performance ✅ Complete
+
 - Use Supabase PostgreSQL (free tier: 500MB)
 - Indexes on user email, user_id, and created_at columns
 - Query optimization for daily fetch (fetch all active users in single query)
 - Fast userId lookups via indexed primary key
 
 **NFR3**: Cost optimization ✅ Complete
+
 - Target free tiers: Supabase (500MB DB), Vercel (hosting), SendGrid (100 emails/day)
 - OpenAI cost: ~$0.30 per 100 newsletters (gpt-4o-mini)
 - Total monthly cost for 100 users: ~$30 (primarily OpenAI)
 
 **NFR4**: Reliability ✅ Complete
+
 - Cron job executes reliably at 11am ET daily (Supabase Cron)
 - Failed newsletter sends do not block other users
 - Email deliverability: Use verified SendGrid sender domain
@@ -126,6 +144,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 - Comprehensive structured logging
 
 **NFR5**: Security ✅ Complete
+
 - No passwords required, email-based authentication
 - API keys stored in Supabase secrets (never in code)
 - Input validation on all user-provided content
@@ -139,17 +158,17 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 
 ### Platform Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **Runtime** | Deno + TypeScript | Edge Functions execution |
-| **Frontend** | Next.js 14 + React | Landing page |
-| **Styling** | TailwindCSS | UI design |
-| **Database** | Supabase PostgreSQL | User data, preferences, history |
-| **Serverless** | Supabase Edge Functions | API endpoints |
-| **Scheduling** | Supabase Cron | Daily newsletter trigger |
-| **Email In** | SendGrid Inbound Parse | Receive replies |
-| **Email Out** | SendGrid Send API | Send newsletters |
-| **AI** | OpenAI (gpt-4o-mini) | Newsletter generation |
+| Component      | Technology              | Purpose                         |
+| -------------- | ----------------------- | ------------------------------- |
+| **Runtime**    | Deno + TypeScript       | Edge Functions execution        |
+| **Frontend**   | Next.js 14 + React      | Landing page                    |
+| **Styling**    | TailwindCSS             | UI design                       |
+| **Database**   | Supabase PostgreSQL     | User data, preferences, history |
+| **Serverless** | Supabase Edge Functions | API endpoints                   |
+| **Scheduling** | Supabase Cron           | Daily newsletter trigger        |
+| **Email In**   | SendGrid Inbound Parse  | Receive replies                 |
+| **Email Out**  | SendGrid Send API       | Send newsletters                |
+| **AI**         | OpenAI (gpt-4o-mini)    | Newsletter generation           |
 
 ### Service Architecture
 
@@ -198,6 +217,7 @@ llmbox/  (monorepo)
 ### Database Schema
 
 **Users:**
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -208,6 +228,7 @@ CREATE TABLE users (
 ```
 
 **Customizations:**
+
 ```sql
 CREATE TABLE customizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -219,6 +240,7 @@ CREATE TABLE customizations (
 ```
 
 **Newsletters:**
+
 ```sql
 CREATE TABLE newsletters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -233,6 +255,7 @@ CREATE TABLE newsletters (
 ### Dynamic Reply Addresses
 
 **How it works:**
+
 - Each newsletter sent from: `reply+{userId}@mail.llmbox.pro`
 - User replies to same address
 - SendGrid wildcard matches: `reply+*@mail.llmbox.pro`
@@ -241,6 +264,7 @@ CREATE TABLE newsletters (
 - Fallback to email lookup if needed
 
 **Benefits:**
+
 - Efficient routing (direct userId lookup)
 - Proper email threading
 - User isolation and security
@@ -253,9 +277,11 @@ CREATE TABLE newsletters (
 
 ### Epic 1: Foundation & Landing Page ✅ Complete
 
-Develop landing page, database schema, and signup flow - allowing users to register for daily newsletters.
+Develop landing page, database schema, and signup flow - allowing users to register for daily
+newsletters.
 
 **Stories:**
+
 - ✅ Database schema and setup
 - ✅ Landing page design and implementation
 - ✅ Signup API endpoint
@@ -263,9 +289,11 @@ Develop landing page, database schema, and signup flow - allowing users to regis
 
 ### Epic 2: Newsletter Generation & Delivery ✅ Complete
 
-Implement cron-triggered newsletter generation, OpenAI integration, and email delivery - delivering the core MVP functionality.
+Implement cron-triggered newsletter generation, OpenAI integration, and email delivery - delivering
+the core MVP functionality.
 
 **Stories:**
+
 - ✅ Newsletter generation logic
 - ✅ Cron job setup
 - ✅ Newsletter email formatting (with dynamic FROM addresses)
@@ -273,9 +301,11 @@ Implement cron-triggered newsletter generation, OpenAI integration, and email de
 
 ### Epic 3: Reply Handling & Customization ✅ Complete
 
-Add reply email webhook, feedback storage, and confirmation emails - enabling user-directed customization.
+Add reply email webhook, feedback storage, and confirmation emails - enabling user-directed
+customization.
 
 **Stories:**
+
 - ✅ Reply webhook endpoint (with userId extraction)
 - ✅ Confirmation email
 - ✅ Feedback integration
@@ -314,19 +344,23 @@ cd web && vercel deploy --prod
 ### Configure External Services
 
 **1. SendGrid Inbound Parse**
+
 - Domain: `mail.llmbox.pro`
 - URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-reply`
 - Captures: `reply+*@mail.llmbox.pro` (wildcard)
 
 **2. DNS Configuration**
+
 ```
 mail.llmbox.pro.  MX  10  mx.sendgrid.net.
 ```
 
 **3. Supabase Cron Job**
+
 - Name: `personifeed-daily-newsletter`
 - Schedule: `0 15 * * *` (11am ET = 3pm UTC)
 - SQL:
+
 ```sql
 SELECT net.http_post(
   url:='https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-cron',
@@ -336,16 +370,16 @@ SELECT net.http_post(
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
-| `SENDGRID_API_KEY` | Yes | - | SendGrid API key |
-| `PERSONIFEED_EMAIL_DOMAIN` | No | `mail.llmbox.pro` | Email domain for dynamic addresses |
-| `OPENAI_MODEL` | No | `gpt-4o-mini` | OpenAI model to use |
-| `OPENAI_TEMPERATURE` | No | `0.7` | Creativity setting |
-| `OPENAI_MAX_TOKENS` | No | `2000` | Max response length |
-| `ENABLE_WEB_SEARCH` | No | `true` | Enable AI web search |
-| `LOG_LEVEL` | No | `INFO` | Logging verbosity |
+| Variable                   | Required | Default           | Description                        |
+| -------------------------- | -------- | ----------------- | ---------------------------------- |
+| `OPENAI_API_KEY`           | Yes      | -                 | OpenAI API key                     |
+| `SENDGRID_API_KEY`         | Yes      | -                 | SendGrid API key                   |
+| `PERSONIFEED_EMAIL_DOMAIN` | No       | `mail.llmbox.pro` | Email domain for dynamic addresses |
+| `OPENAI_MODEL`             | No       | `gpt-4o-mini`     | OpenAI model to use                |
+| `OPENAI_TEMPERATURE`       | No       | `0.7`             | Creativity setting                 |
+| `OPENAI_MAX_TOKENS`        | No       | `2000`            | Max response length                |
+| `ENABLE_WEB_SEARCH`        | No       | `true`            | Enable AI web search               |
+| `LOG_LEVEL`                | No       | `INFO`            | Logging verbosity                  |
 
 ---
 
@@ -414,16 +448,19 @@ deno task secrets:set:key PERSONIFEED_EMAIL_DOMAIN=mail.llmbox.pro
 ### Useful SQL Queries
 
 **Check active users:**
+
 ```sql
 SELECT COUNT(*) FROM users WHERE active = true;
 ```
 
 **View recent signups:**
+
 ```sql
 SELECT email, created_at FROM users ORDER BY created_at DESC LIMIT 10;
 ```
 
 **Newsletter delivery stats (last 7 days):**
+
 ```sql
 SELECT
   DATE(sent_at) as date,
@@ -440,6 +477,7 @@ ORDER BY date DESC;
 ```
 
 **Find users with most feedback:**
+
 ```sql
 SELECT
   u.email,
@@ -494,6 +532,7 @@ LIMIT 10;
 ### Key Metrics to Track
 
 **Operational:**
+
 - Daily active users (cron job recipients)
 - Newsletter generation success rate
 - Average newsletter generation time
@@ -501,6 +540,7 @@ LIMIT 10;
 - Reply rate (% of users who reply)
 
 **Business:**
+
 - Total signups
 - User retention (active users over time)
 - Feedback engagement (average customizations per user)
@@ -522,6 +562,7 @@ Key events logged in structured JSON format:
 ### Monitoring Queries
 
 **Daily signup rate:**
+
 ```sql
 SELECT
   DATE(created_at) as date,
@@ -533,6 +574,7 @@ ORDER BY date DESC;
 ```
 
 **Reply/feedback rate:**
+
 ```sql
 SELECT
   COUNT(DISTINCT u.id) as total_users,
@@ -552,24 +594,28 @@ LEFT JOIN customizations c ON u.id = c.user_id;
 ### Common Issues
 
 **Issue: Newsletters not sending**
+
 - Check SendGrid API key: `deno task secrets:list`
 - Verify sender domain authenticated in SendGrid
 - Check cron job logs: `deno task logs:cron`
 - Ensure cron is scheduled correctly
 
 **Issue: Replies not processed**
+
 - Verify SendGrid Inbound Parse configured
 - Check MX records: `dig MX mail.llmbox.pro`
 - Test webhook: `deno task logs:reply`
 - Confirm wildcard pattern: `reply+*@mail.llmbox.pro`
 
 **Issue: Signup form not submitting**
+
 - Check browser console for errors
 - Verify CORS headers in function
 - Test function directly with curl
 - Check function logs: `deno task logs:signup`
 
 **Issue: Cron job not running**
+
 - Verify cron configuration in Supabase Dashboard
 - Check schedule (adjust for timezone/DST)
 - Ensure service role key is correct
@@ -590,11 +636,13 @@ deno task logs:cron:tail
 ### Database Debugging
 
 **View database connection:**
+
 ```bash
 supabase db ping --project-ref nopocimtfthppwssohty
 ```
 
 **Check database size:**
+
 ```sql
 SELECT
   tablename,
@@ -741,6 +789,7 @@ ORDER BY pg_total_relation_size('public.'||tablename) DESC;
 ### Configuration Files
 
 **`supabase/config.toml`:**
+
 ```toml
 [functions.personifeed-signup]
 verify_jwt = false  # Public endpoint
@@ -756,6 +805,7 @@ import_map = './import_map.json'
 ```
 
 **`supabase/import_map.json`:**
+
 ```json
 {
   "imports": {
@@ -769,6 +819,7 @@ import_map = './import_map.json'
 ### API Response Formats
 
 **Signup success:**
+
 ```json
 {
   "success": true,
@@ -778,6 +829,7 @@ import_map = './import_map.json'
 ```
 
 **Cron completion:**
+
 ```json
 {
   "success": true,
@@ -792,6 +844,7 @@ import_map = './import_map.json'
 ```
 
 **Reply processed:**
+
 ```json
 {
   "success": true,
@@ -803,9 +856,12 @@ import_map = './import_map.json'
 
 ## Conclusion
 
-personi[feed] MVP is **complete and in production**, delivering daily personalized newsletters to users. The system leverages **~70% of llmbox's infrastructure**, uses dynamic reply addresses for efficient routing, and follows Supabase Edge Functions best practices.
+personi[feed] MVP is **complete and in production**, delivering daily personalized newsletters to
+users. The system leverages **~70% of llmbox's infrastructure**, uses dynamic reply addresses for
+efficient routing, and follows Supabase Edge Functions best practices.
 
 **Production Status:**
+
 - ✅ All three Edge Functions deployed
 - ✅ Database schema applied
 - ✅ Cron job scheduled and running
@@ -815,6 +871,7 @@ personi[feed] MVP is **complete and in production**, delivering daily personaliz
 - ✅ Monitoring and logging operational
 
 **Key Achievements:**
+
 - Zero-friction signup (no password)
 - Daily newsletters at 11am ET
 - Email-based customization via replies
@@ -824,6 +881,7 @@ personi[feed] MVP is **complete and in production**, delivering daily personaliz
 - Cost-effective operation (~$30/month for 100 users)
 
 **Production URLs:**
+
 - Landing page: https://llmbox.pro/personifeed
 - Signup: https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-signup
 - Cron: https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-cron

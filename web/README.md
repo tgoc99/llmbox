@@ -80,12 +80,14 @@ web/
 ### Update Email Address
 
 Replace `assistant@yourdomain.com` in:
+
 - `components/Hero.tsx`
 - `components/CTA.tsx`
 
 ### Update Links
 
 Replace GitHub/documentation links in:
+
 - `components/CTA.tsx`
 - `app/page.tsx` (footer)
 
@@ -113,6 +115,7 @@ colors: {
 ### Modify Content
 
 All content is in the component files:
+
 - **Hero:** `components/Hero.tsx`
 - **Features:** `components/Features.tsx` (edit the `features` array)
 - **How It Works:** `components/HowItWorks.tsx` (edit the `steps` array)
@@ -120,13 +123,13 @@ All content is in the component files:
 
 ## Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run type-check` | Check TypeScript types |
+| Command              | Description              |
+| -------------------- | ------------------------ |
+| `npm run dev`        | Start development server |
+| `npm run build`      | Build for production     |
+| `npm start`          | Start production server  |
+| `npm run lint`       | Run ESLint               |
+| `npm run type-check` | Check TypeScript types   |
 
 ## Deployment
 
@@ -160,6 +163,7 @@ See [../docs/WEB-DEPLOYMENT.md](../docs/WEB-DEPLOYMENT.md) for complete deployme
 ## Performance
 
 Target Lighthouse scores:
+
 - Performance: 90+
 - Accessibility: 90+
 - Best Practices: 90+
@@ -168,4 +172,3 @@ Target Lighthouse scores:
 ## License
 
 Same as parent repository.
-

@@ -1,5 +1,12 @@
-import { assertEquals, assertExists, assertThrows } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { parseIncomingEmail, ValidationError } from '../../supabase/functions/email-webhook/emailParser.ts';
+import {
+  assertEquals,
+  assertExists,
+  assertThrows,
+} from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import {
+  parseIncomingEmail,
+  ValidationError,
+} from '../../supabase/functions/email-webhook/emailParser.ts';
 
 Deno.test('parseIncomingEmail - valid payload with all fields', () => {
   const formData = new FormData();

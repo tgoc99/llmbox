@@ -15,14 +15,25 @@ This is an **email-to-LLM chat service** that allows users to interact with AI (
 ### Project Structure
 ```
 llmbox/
-├── supabase/functions/email-webhook/  # Main serverless function
-├── tests/                             # Unit and integration tests
+├── supabase/functions/
+│   ├── _shared/                       # Shared utilities (types, logger, llmClient, etc.)
+│   ├── email-webhook/                 # LLMBox email processor
+│   ├── personifeed-signup/            # Personifeed signup handler
+│   ├── personifeed-cron/              # Daily newsletter generator
+│   └── personifeed-reply/             # Reply handler
+├── tests/
+│   ├── unit/                          # Fast, no external deps (shared, email-webhook, personifeed, database)
+│   ├── contract/                      # Schema/contract validation
+│   ├── integration/                   # Real API calls (external-apis, llmbox, personifeed)
+│   ├── e2e/                           # Full user journeys (llmbox, personifeed)
+│   └── README.md                      # Testing guide
 ├── web/                               # Next.js landing page
 ├── docs/                              # Documentation
 │   ├── prd.md                         # Product requirements
-│   ├── prd/                           # Detailed PRD sections
-│   └── architecture.md                # System architecture
-└── README.md                          # Main entry point
+│   ├── architecture.md                # System architecture
+│   └── personifeed-*.md               # Personifeed documentation
+├── README.md                          # LLMBox documentation
+└── PERSONIFEED-README.md              # Personifeed documentation
 ```
 
 ## Coding Standards
@@ -67,11 +78,51 @@ llmbox/
 - **Rate Limiting:** Handle 429 responses with retries
 
 ### Testing Standards
-- **Unit Tests:** Test pure functions and business logic
-- **Integration Tests:** Test external API integrations (may incur costs)
-- **Coverage:** Aim for >80% code coverage
-- **Mocking:** Use Deno mocks for external services in unit tests
-- **Assertions:** Use descriptive assertion messages
+
+**Test Organization:**
+The repository follows a comprehensive testing pyramid organized in `tests/`:
+- `unit/` - Fast, no external dependencies (shared, email-webhook, personifeed, database)
+- `contract/` - Contract/schema validation tests
+- `integration/` - Slow, real API calls (external-apis, llmbox, personifeed)
+- `e2e/` - Full user journeys (llmbox, personifeed)
+
+**Test Types:**
+- **Unit Tests:** Test pure functions, parsers, validators with mocked dependencies
+  - Run constantly during development: `deno task test:unit:watch`
+  - Coverage goal: >80%
+- **Contract Tests:** Validate schemas, types, API contracts
+  - Run before commits: `deno task test:contract`
+  - Coverage goal: >70%
+- **Integration Tests:** Test real API calls (costs money!)
+  - Run before deployment: `deno task test:integration`
+  - ⚠️ Makes real OpenAI, SendGrid, Supabase calls
+- **E2E Tests:** Test complete user workflows (very expensive!)
+  - Run weekly or before major releases: `deno task test:e2e`
+  - ⚠️ Full end-to-end flows with all services
+
+**Testing Workflow:**
+```bash
+# While coding (fast feedback)
+deno task test:unit:watch
+
+# Before committing (fast, free)
+deno task check
+
+# Before deploying (includes integration tests, $$$)
+deno task test:pre-deploy
+
+# Weekly validation (everything, $$$$)
+deno task test:all
+```
+
+**Test Writing Guidelines:**
+- Use descriptive test names: `"should send email when user signs up"`
+- Test error cases and edge cases, not just happy paths
+- Mock external APIs in unit tests
+- Use `ignore: shouldSkip` pattern for integration/E2E tests
+- Clean up test data in integration/E2E tests
+- Never hardcode production IDs or emails in tests
+- Use `assertEquals`, `assertExists`, `assertRejects` from Deno std/assert
 
 ### Security Standards
 - **No Hardcoded Secrets:** Use environment variables/Supabase secrets
@@ -104,26 +155,49 @@ llmbox/
 
 ## Development Workflow
 
-### Before Committing
+### Git Hooks (Automated)
+Git hooks automatically run quality checks:
+- **Pre-commit:** Format, lint, type-check, unit & contract tests
+- **Pre-push:** Full check task
+
+Setup once after cloning:
 ```bash
-deno task check:all  # Runs fmt, lint, type-check, and tests
+./.husky/install.sh
+```
+
+### Before Committing (Manual)
+```bash
+deno task check  # Runs fmt, lint, type-check, and fast tests
 ```
 
 ### Common Commands
 ```bash
 # Development
-deno task deploy      # Deploy to Supabase
-deno task logs        # View logs
-deno task logs:tail   # Live tail logs
+deno task deploy             # Deploy to Supabase (runs check first)
+deno task logs               # View logs
+deno task logs:tail          # Live tail logs
 
-# Testing
-deno task test        # All tests
-deno task test:unit   # Unit tests only
-deno task test:integration  # Integration tests (requires API keys)
+# Testing (in order of speed/cost)
+deno task test               # Fast tests only (unit + contract)
+deno task test:unit          # Unit tests only
+deno task test:contract      # Contract/schema tests
+deno task test:integration   # Integration tests (requires API keys, $$$)
+deno task test:e2e           # E2E tests (very slow, $$$$)
+deno task test:all           # Everything (slow, expensive)
+deno task test:pre-deploy    # Fast + integration (before deployment)
+deno task test:ci            # CI-safe tests (no API calls)
+
+# Database Testing
+deno task db:test            # Database schema + integration tests
+
+# Code Quality
+deno task check              # Format, lint, type-check, fast tests
+deno task check:all          # All checks + integration tests
+deno task check:quick        # Format, lint, unit tests only
 
 # Web Development
-deno task web:dev     # Start web dev server
-deno task web:build   # Build web for production
+deno task web:dev            # Start web dev server
+deno task web:build          # Build web for production
 ```
 
 ## API Credentials
@@ -180,12 +254,13 @@ supabase secrets set OPENAI_API_KEY=sk-... --project-ref nopocimtfthppwssohty
 
 ## Documentation
 
-- **Main README:** Project overview and setup
-- **CLAUDE.md:** AI assistant context
-- **WEB-PROJECT-SUMMARY.md:** Web landing page documentation
+- **README.md:** LLMBox project overview and setup
+- **PERSONIFEED-README.md:** Personifeed documentation
+- **CLAUDE.md:** AI assistant context (includes testing strategy)
+- **tests/README.md:** Comprehensive testing guide
 - **docs/prd.md:** Product requirements
 - **docs/architecture.md:** System architecture
-- **tests/integration/README.md:** Integration testing guide
+- **docs/personifeed-*.md:** Personifeed architecture and guides
 
 ## Dependencies
 

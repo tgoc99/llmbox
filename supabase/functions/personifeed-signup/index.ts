@@ -8,8 +8,8 @@ import { corsHeaders, handlePreflight } from '../_shared/cors.ts';
 import { logInfo } from '../_shared/logger.ts';
 import { handleError } from '../_shared/errors.ts';
 import type { SignupRequest, SignupResponse } from '../_shared/types.ts';
-import { getUserByEmail, createUser, addCustomization } from './database.ts';
-import { validateEmail, validatePrompt, sanitizePrompt } from './validation.ts';
+import { addCustomization, createUser, getUserByEmail } from './database.ts';
+import { sanitizePrompt, validateEmail, validatePrompt } from './validation.ts';
 
 /**
  * Main handler for signup requests
@@ -91,20 +91,21 @@ const handleSignup = async (req: Request): Promise<Response> => {
 /**
  * Serve HTTP requests
  */
-serve(async (req: Request): Promise<Response> => {
+serve((req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return handlePreflight();
+    return Promise.resolve(handlePreflight());
   }
 
   // Only accept POST requests
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return Promise.resolve(
+      new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }),
+    );
   }
 
   return handleSignup(req);
 });
-

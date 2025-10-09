@@ -36,4 +36,3 @@ export const getSupabaseClient = (): SupabaseClient => {
   }
   return supabaseInstance;
 };
-

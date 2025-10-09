@@ -91,4 +91,3 @@ export class PerformanceTracker {
     return Object.fromEntries(this.durations);
   }
 }
-

@@ -2,15 +2,22 @@
 
 ## Introduction
 
-This document outlines the overall project architecture for **personi[feed]**, a daily AI-powered personalized newsletter service. The architecture leverages significant code reuse from the existing **llmbox** project while introducing database persistence and scheduled execution patterns.
+This document outlines the overall project architecture for **personi[feed]**, a daily AI-powered
+personalized newsletter service. The architecture leverages significant code reuse from the existing
+**llmbox** project while introducing database persistence and scheduled execution patterns.
 
 ### Relationship to Existing Project
 
 **Built on llmbox Foundation**
 
-personi[feed] is developed within the same monorepo as llmbox and extensively reuses battle-tested components including OpenAI integration, SendGrid email handling, structured logging, retry logic, and Next.js web infrastructure. The web interface is deployed as a route (`/personifeed`) within the existing llmbox.pro Next.js application, maximizing code reuse and simplifying deployment. This approach dramatically reduces development time and ensures reliability.
+personi[feed] is developed within the same monorepo as llmbox and extensively reuses battle-tested
+components including OpenAI integration, SendGrid email handling, structured logging, retry logic,
+and Next.js web infrastructure. The web interface is deployed as a route (`/personifeed`) within the
+existing llmbox.pro Next.js application, maximizing code reuse and simplifying deployment. This
+approach dramatically reduces development time and ensures reliability.
 
 **Key Architectural Differences:**
+
 - **Persistence**: Database-backed (Supabase PostgreSQL) vs. stateless
 - **Trigger**: Cron-scheduled vs. webhook-triggered
 - **Use Case**: Newsletter generation vs. conversational AI
@@ -20,12 +27,12 @@ personi[feed] is developed within the same monorepo as llmbox and extensively re
 
 ### Change Log
 
-| Date | Version | Description | Author |
-|------|---------|-------------|--------|
-| 2025-10-09 | 1.3 | Updated to reflect actual implementation with dynamic reply addresses, proper _shared folder structure, and supabase/ level import_map.json | Architect |
-| 2025-10-09 | 1.2 | Updated to use shared Next.js app with `/personifeed` route instead of separate web-personifeed directory | Architect |
-| 2025-10-09 | 1.1 | Updated to follow Supabase Edge Functions best practices (_shared folder, co-located tests, import_map.json, config.toml) | Architect |
-| 2025-10-09 | 1.0 | Initial Architecture | Architect |
+| Date       | Version | Description                                                                                                                                 | Author    |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 2025-10-09 | 1.3     | Updated to reflect actual implementation with dynamic reply addresses, proper _shared folder structure, and supabase/ level import_map.json | Architect |
+| 2025-10-09 | 1.2     | Updated to use shared Next.js app with `/personifeed` route instead of separate web-personifeed directory                                   | Architect |
+| 2025-10-09 | 1.1     | Updated to follow Supabase Edge Functions best practices (_shared folder, co-located tests, import_map.json, config.toml)                   | Architect |
+| 2025-10-09 | 1.0     | Initial Architecture                                                                                                                        | Architect |
 
 ---
 
@@ -33,7 +40,15 @@ personi[feed] is developed within the same monorepo as llmbox and extensively re
 
 ### Technical Summary
 
-personi[feed] is a **database-backed, cron-scheduled newsletter service** built on Supabase Edge Functions and PostgreSQL. The system allows users to sign up via a Next.js landing page by providing an email address and initial content preferences. A daily cron job (11am ET) fetches all active users, generates personalized newsletters using OpenAI's API, and delivers them via SendGrid using **dynamic reply addresses** (`reply+{userId}@mail.llmbox.pro`). Users can reply to any newsletter to refine future content, with replies parsed via SendGrid Inbound Parse webhook and stored as feedback in the database. The architecture extensively reuses llmbox components for OpenAI integration, email handling, logging, and retry logic, while adding database persistence, scheduled execution, and a custom newsletter generation workflow.
+personi[feed] is a **database-backed, cron-scheduled newsletter service** built on Supabase Edge
+Functions and PostgreSQL. The system allows users to sign up via a Next.js landing page by providing
+an email address and initial content preferences. A daily cron job (11am ET) fetches all active
+users, generates personalized newsletters using OpenAI's API, and delivers them via SendGrid using
+**dynamic reply addresses** (`reply+{userId}@mail.llmbox.pro`). Users can reply to any newsletter to
+refine future content, with replies parsed via SendGrid Inbound Parse webhook and stored as feedback
+in the database. The architecture extensively reuses llmbox components for OpenAI integration, email
+handling, logging, and retry logic, while adding database persistence, scheduled execution, and a
+custom newsletter generation workflow.
 
 **Status:** MVP Complete - In Production
 
@@ -42,6 +57,7 @@ personi[feed] is a **database-backed, cron-scheduled newsletter service** built 
 **Platform:** Supabase (Edge Functions + PostgreSQL + Cron) + Vercel (Web Hosting)
 
 **Key Services:**
+
 - **Supabase Edge Functions** - Serverless compute (Deno runtime)
 - **Supabase PostgreSQL** - User preferences, customizations, newsletter history
 - **Supabase Cron** - Daily scheduled newsletter generation (11am ET)
@@ -49,11 +65,13 @@ personi[feed] is a **database-backed, cron-scheduled newsletter service** built 
 - **Vercel** - Next.js landing page hosting
 
 **Deployment Host and Regions:**
+
 - Supabase Project ID: nopocimtfthppwssohty (us-east-2)
 - Supabase global edge network (automatic multi-region)
 - Vercel global CDN for landing page
 
 **Rationale:**
+
 - **Supabase PostgreSQL** provides reliable, scalable database with generous free tier (500MB)
 - **Supabase Cron** offers native scheduled job execution without external services
 - **Reuse llmbox Supabase project** reduces operational complexity
@@ -65,6 +83,7 @@ personi[feed] is a **database-backed, cron-scheduled newsletter service** built 
 **Structure:** Monorepo (shared with llmbox)
 
 **Package Organization:**
+
 ```
 llmbox/  (repository root)
 ├── supabase/
@@ -118,8 +137,10 @@ llmbox/  (repository root)
 ```
 
 **Rationale:**
+
 - **`_shared/` folder prefix**: Following Supabase best practice for shared code across functions
-- **Supabase-level `import_map.json`**: Centralized dependency management at `supabase/import_map.json`
+- **Supabase-level `import_map.json`**: Centralized dependency management at
+  `supabase/import_map.json`
 - **Co-located tests**: Tests placed near functions with `-test` suffix as recommended
 - **Monorepo structure**: Enables code reuse and shared tooling
 - **"Fat functions"**: Each function handles complete workflows rather than many small functions
@@ -175,42 +196,66 @@ graph TB
 
 ### Architectural Patterns
 
-- **Scheduled Execution Pattern:** Supabase Cron triggers daily newsletter generation - _Rationale:_ Ensures consistent delivery time; decouples generation from user actions; allows batch processing for efficiency
+- **Scheduled Execution Pattern:** Supabase Cron triggers daily newsletter generation - _Rationale:_
+  Ensures consistent delivery time; decouples generation from user actions; allows batch processing
+  for efficiency
 
-- **Database-Backed Personalization:** User preferences and feedback stored in PostgreSQL - _Rationale:_ Enables cumulative customization over time; supports querying and analytics; prepares for future features
+- **Database-Backed Personalization:** User preferences and feedback stored in PostgreSQL -
+  _Rationale:_ Enables cumulative customization over time; supports querying and analytics; prepares
+  for future features
 
-- **Event-Driven Reply Handling:** Webhook-triggered feedback processing - _Rationale:_ Immediate acknowledgment of user feedback; asynchronous processing; reuses llmbox webhook pattern
+- **Event-Driven Reply Handling:** Webhook-triggered feedback processing - _Rationale:_ Immediate
+  acknowledgment of user feedback; asynchronous processing; reuses llmbox webhook pattern
 
-- **Dynamic Reply Addresses:** Each newsletter sent from `reply+{userId}@domain` - _Rationale:_ Efficient user identification from TO address; proper email threading; eliminates need for separate reply-to configuration; enables fast database lookups by userId
+- **Dynamic Reply Addresses:** Each newsletter sent from `reply+{userId}@domain` - _Rationale:_
+  Efficient user identification from TO address; proper email threading; eliminates need for
+  separate reply-to configuration; enables fast database lookups by userId
 
-- **Code Reuse Architecture:** Shared utilities and components across projects - _Rationale:_ Reduces development time; maintains consistency; leverages battle-tested code; simplifies maintenance
+- **Code Reuse Architecture:** Shared utilities and components across projects - _Rationale:_
+  Reduces development time; maintains consistency; leverages battle-tested code; simplifies
+  maintenance
 
-- **Separation of Concerns:** Distinct Edge Functions for signup, generation, and replies - _Rationale:_ Independent deployment and scaling; clear responsibilities; easier testing and debugging
+- **Separation of Concerns:** Distinct Edge Functions for signup, generation, and replies -
+  _Rationale:_ Independent deployment and scaling; clear responsibilities; easier testing and
+  debugging
 
 ### Supabase Edge Functions Best Practices
 
-Following [Supabase Edge Functions Development Tips](https://supabase.com/docs/guides/functions/development-tips), this architecture incorporates:
+Following
+[Supabase Edge Functions Development Tips](https://supabase.com/docs/guides/functions/development-tips),
+this architecture incorporates:
 
 **1. Organizing Functions:**
+
 - ✅ **Underscore-prefixed shared folder** (`_shared/`) for utilities used across functions
-- ✅ **"Fat functions" pattern** - few large functions with complete workflows vs. many small functions
-- ✅ **Hyphenated function names** - URL-friendly naming (e.g., `personifeed-signup`, not `personifeedSignup`)
+- ✅ **"Fat functions" pattern** - few large functions with complete workflows vs. many small
+  functions
+- ✅ **Hyphenated function names** - URL-friendly naming (e.g., `personifeed-signup`, not
+  `personifeedSignup`)
 - ✅ **Co-located tests** - tests placed in `supabase/functions/tests/` with `-test` suffix
 
 **2. Configuration:**
+
 - ✅ **Function-specific `config.toml`** - JWT verification and import map location per function
-- ✅ **Supabase-level `import_map.json`** - centralized dependency management at `supabase/import_map.json`
-- ✅ **Explicit JWT settings** - `verify_jwt = false` for public webhooks, `true` for protected endpoints
+- ✅ **Supabase-level `import_map.json`** - centralized dependency management at
+  `supabase/import_map.json`
+- ✅ **Explicit JWT settings** - `verify_jwt = false` for public webhooks, `true` for protected
+  endpoints
 
 **3. Error Handling:**
-- ✅ **Supabase-js error types** - Use `FunctionsHttpError`, `FunctionsRelayError`, `FunctionsFetchError`
+
+- ✅ **Supabase-js error types** - Use `FunctionsHttpError`, `FunctionsRelayError`,
+  `FunctionsFetchError`
 - ✅ **Structured error responses** - Consistent JSON error format across all functions
 
 **4. Database vs Edge Functions:**
+
 - ✅ **Edge Functions for low-latency** - Newsletter generation, signup processing, reply handling
-- 🔮 **Database Functions for data-intensive ops** (post-MVP) - Complex data aggregations, bulk operations
+- 🔮 **Database Functions for data-intensive ops** (post-MVP) - Complex data aggregations, bulk
+  operations
 
 **5. CORS Support:**
+
 - ✅ Reusable CORS headers in `_shared/cors.ts` for browser-invoked functions
 - ✅ Signup function includes CORS headers for web form submissions
 
@@ -220,24 +265,24 @@ Following [Supabase Edge Functions Development Tips](https://supabase.com/docs/g
 
 ### Technology Stack Table
 
-| Category | Technology | Version | Purpose | Rationale |
-|----------|-----------|---------|---------|-----------|
-| **Frontend** | Next.js | 14.2.15 | Landing page | Modern React framework, static generation, reuses llmbox setup |
-| **Frontend** | React | 18.3+ | UI library | Component-based architecture, industry standard |
-| **Frontend** | TailwindCSS | 3.4+ | Styling | Utility-first CSS, consistent with llmbox web app |
-| **Runtime** | Deno | Latest (Supabase managed) | Edge Functions runtime | Native to Supabase; TypeScript support; reuses llmbox runtime |
-| **Language** | TypeScript | 5.x | Primary development language | Type safety; reduces runtime errors; consistent with llmbox |
-| **Database** | Supabase PostgreSQL | 15+ | User preferences, newsletter history | Reliable, scalable, generous free tier, integrated with Supabase |
-| **Serverless Platform** | Supabase Edge Functions | Latest | Serverless compute | Zero-config scaling; integrated with database and cron |
-| **Scheduling** | Supabase Cron | Latest | Daily newsletter trigger | Native cron support; reliable execution; no external scheduler needed |
-| **Email Inbound** | SendGrid Inbound Parse | API v3 | Receive reply emails | **Reused from llmbox**; proven reliability; wildcard domain routing |
-| **Email Outbound** | SendGrid Send API | API v3 | Send newsletters and confirmations | **Reused from llmbox**; excellent deliverability; dynamic FROM addresses |
-| **LLM/AI** | OpenAI API | GPT-4o-mini, GPT-4o | Newsletter generation | **Reused from llmbox**; industry-leading; cost-effective |
-| **HTTP Client** | Deno native fetch | Built-in | HTTP requests | **Reused from llmbox**; standards-compliant |
-| **Secrets Management** | Supabase Secrets | Built-in | Store API keys | **Reused from llmbox**; secure environment variables |
-| **Logging** | Supabase Logs | Built-in | Centralized logging | **Reused from llmbox**; queryable logs |
-| **Testing Framework** | Deno Test | Built-in | Unit and integration testing | **Reused from llmbox**; no additional dependencies |
-| **Deployment** | Supabase CLI + Vercel CLI | Latest | Local development and deployment | **Reused from llmbox**; consistent workflows |
+| Category                | Technology                | Version                   | Purpose                              | Rationale                                                                |
+| ----------------------- | ------------------------- | ------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| **Frontend**            | Next.js                   | 14.2.15                   | Landing page                         | Modern React framework, static generation, reuses llmbox setup           |
+| **Frontend**            | React                     | 18.3+                     | UI library                           | Component-based architecture, industry standard                          |
+| **Frontend**            | TailwindCSS               | 3.4+                      | Styling                              | Utility-first CSS, consistent with llmbox web app                        |
+| **Runtime**             | Deno                      | Latest (Supabase managed) | Edge Functions runtime               | Native to Supabase; TypeScript support; reuses llmbox runtime            |
+| **Language**            | TypeScript                | 5.x                       | Primary development language         | Type safety; reduces runtime errors; consistent with llmbox              |
+| **Database**            | Supabase PostgreSQL       | 15+                       | User preferences, newsletter history | Reliable, scalable, generous free tier, integrated with Supabase         |
+| **Serverless Platform** | Supabase Edge Functions   | Latest                    | Serverless compute                   | Zero-config scaling; integrated with database and cron                   |
+| **Scheduling**          | Supabase Cron             | Latest                    | Daily newsletter trigger             | Native cron support; reliable execution; no external scheduler needed    |
+| **Email Inbound**       | SendGrid Inbound Parse    | API v3                    | Receive reply emails                 | **Reused from llmbox**; proven reliability; wildcard domain routing      |
+| **Email Outbound**      | SendGrid Send API         | API v3                    | Send newsletters and confirmations   | **Reused from llmbox**; excellent deliverability; dynamic FROM addresses |
+| **LLM/AI**              | OpenAI API                | GPT-4o-mini, GPT-4o       | Newsletter generation                | **Reused from llmbox**; industry-leading; cost-effective                 |
+| **HTTP Client**         | Deno native fetch         | Built-in                  | HTTP requests                        | **Reused from llmbox**; standards-compliant                              |
+| **Secrets Management**  | Supabase Secrets          | Built-in                  | Store API keys                       | **Reused from llmbox**; secure environment variables                     |
+| **Logging**             | Supabase Logs             | Built-in                  | Centralized logging                  | **Reused from llmbox**; queryable logs                                   |
+| **Testing Framework**   | Deno Test                 | Built-in                  | Unit and integration testing         | **Reused from llmbox**; no additional dependencies                       |
+| **Deployment**          | Supabase CLI + Vercel CLI | Latest                    | Local development and deployment     | **Reused from llmbox**; consistent workflows                             |
 
 ---
 
@@ -245,17 +290,21 @@ Following [Supabase Edge Functions Development Tips](https://supabase.com/docs/g
 
 ### Overview
 
-Personifeed uses **dynamic reply addresses** in the format `reply+{userId}@{domain}` to efficiently route user feedback. This is a key architectural decision that simplifies reply handling and improves performance.
+Personifeed uses **dynamic reply addresses** in the format `reply+{userId}@{domain}` to efficiently
+route user feedback. This is a key architectural decision that simplifies reply handling and
+improves performance.
 
 ### How It Works
 
 **1. Sending Newsletters**
+
 ```typescript
 // Each newsletter is sent FROM a unique address
 const fromAddress = `reply+${user.id}@mail.llmbox.pro`;
 ```
 
 **2. Receiving Replies**
+
 ```typescript
 // Extract userId from TO address
 const userId = extractUserIdFromEmail(to); // "reply+ABC123@..." → "ABC123"
@@ -263,6 +312,7 @@ const user = await getUserById(userId); // Fast indexed lookup!
 ```
 
 **3. SendGrid Configuration**
+
 - **Inbound Parse**: Wildcard pattern `reply+*@mail.llmbox.pro` captures all variants
 - **Single MX record**: `mail.llmbox.pro → mx.sendgrid.net`
 - **Automatic routing**: SendGrid forwards all matching emails to webhook
@@ -279,16 +329,19 @@ const user = await getUserById(userId); // Fast indexed lookup!
 ### Configuration
 
 **Environment Variable:**
+
 ```bash
 PERSONIFEED_EMAIL_DOMAIN=mail.llmbox.pro
 ```
 
 **DNS Setup:**
+
 ```
 mail.llmbox.pro.  MX  10  mx.sendgrid.net.
 ```
 
 **SendGrid Inbound Parse:**
+
 - Domain: `mail.llmbox.pro`
 - URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-reply`
 - Captures: `reply+*@mail.llmbox.pro` (wildcard)
@@ -316,25 +369,32 @@ if (!user) {
 
 ### Overview
 
-personi[feed] leverages approximately **70% of llmbox's codebase**, significantly reducing development time from weeks to days. The shared `_shared/` folder contains battle-tested utilities used by both services.
+personi[feed] leverages approximately **70% of llmbox's codebase**, significantly reducing
+development time from weeks to days. The shared `_shared/` folder contains battle-tested utilities
+used by both services.
 
 ### Directly Reusable Components (100% Reuse)
 
 #### 1. Structured Logging (`_shared/logger.ts`)
-**Purpose:** Structured JSON logging with correlation IDs, log levels (DEBUG, INFO, WARN, ERROR, CRITICAL).
+
+**Purpose:** Structured JSON logging with correlation IDs, log levels (DEBUG, INFO, WARN, ERROR,
+CRITICAL).
 
 **Usage in personi[feed]:**
+
 ```typescript
-import { logInfo, logError } from '../_shared/logger.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
 
 logInfo('user_signup', { email: user.email, userId: user.id });
 logError('newsletter_generation_failed', { userId, error: errorMessage });
 ```
 
 #### 2. Retry Logic (`_shared/retryLogic.ts`)
+
 **Purpose:** Exponential backoff retry logic for external API calls.
 
 **Usage in personi[feed]:**
+
 ```typescript
 import { withRetry } from '../_shared/retryLogic.ts';
 
@@ -344,9 +404,11 @@ const newsletter = await withRetry(async () => {
 ```
 
 #### 3. Configuration Management (`_shared/config.ts`)
+
 **Purpose:** Centralized environment variable access with defaults.
 
 **Personifeed-specific additions:**
+
 ```typescript
 export const config = {
   // ... existing llmbox config ...
@@ -359,18 +421,22 @@ export const config = {
 ```
 
 #### 4. Custom Error Types (`_shared/errors.ts`)
+
 **Purpose:** Custom error classes (ValidationError, LLMError, EmailError) with status codes.
 
 **Usage in personi[feed]:**
+
 ```typescript
 throw new ValidationError('Email format is invalid');
 throw new LLMError('OpenAI API rate limit exceeded');
 ```
 
 #### 5. TypeScript Types (`_shared/types.ts`)
+
 **Purpose:** Shared TypeScript interfaces for emails, API responses, etc.
 
 **Personifeed-specific additions:**
+
 ```typescript
 export interface User {
   id: string;
@@ -391,9 +457,11 @@ export interface Customization {
 ### Adapted Components
 
 #### 6. Email Sender (`_shared/emailSender.ts`)
+
 **Reuse:** 90% - Core SendGrid integration + new newsletter functions
 
 **New Functions:**
+
 ```typescript
 // Dynamic reply address generator
 export const getReplyAddress = (userId: string): string => {
@@ -404,7 +472,7 @@ export const getReplyAddress = (userId: string): string => {
 export const sendNewsletterEmail = async (
   userId: string,
   userEmail: string,
-  content: string
+  content: string,
 ): Promise<void> => {
   const fromAddress = getReplyAddress(userId);
   // ... send logic
@@ -414,7 +482,7 @@ export const sendNewsletterEmail = async (
 export const sendConfirmationEmail = async (
   userId: string,
   userEmail: string,
-  inReplyTo?: string
+  inReplyTo?: string,
 ): Promise<void> => {
   const fromAddress = getReplyAddress(userId);
   // ... send logic
@@ -422,9 +490,11 @@ export const sendConfirmationEmail = async (
 ```
 
 #### 7. LLM Client (`_shared/llmClient.ts`)
+
 **Reuse:** 80% - OpenAI client + new newsletter generation function
 
 **Newsletter-specific function in `personifeed-cron/newsletterGenerator.ts`:**
+
 ```typescript
 export const generateNewsletterContent = async (
   user: User,
@@ -448,9 +518,11 @@ export const generateNewsletterContent = async (
 ```
 
 #### 8. Email Parser (`personifeed-reply/emailParser.ts`)
+
 **Reuse:** 85% - Core parsing + userId extraction from TO address
 
 **Dynamic address extraction:**
+
 ```typescript
 export const parseReplyEmail = (formData: FormData) => {
   const to = formData.get('to')?.toString() || '';
@@ -470,15 +542,17 @@ const extractUserIdFromEmail = (email: string): string | null => {
 ### New Components (Built from Scratch)
 
 #### 9. Database Access Layer
+
 **Location:** Each function has its own `database.ts` module
 
 **Example (`personifeed-signup/database.ts`):**
+
 ```typescript
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
 export const getUserByEmail = async (email: string): Promise<User | null> => {
@@ -505,9 +579,11 @@ export const getUserById = async (userId: string): Promise<User | null> => {
 ```
 
 #### 10. Cron Job Logic
+
 **Location:** `personifeed-cron/index.ts`
 
 **Key features:**
+
 - Fetch all active users
 - Parallel processing (10 users at a time)
 - Graceful error handling (continue on individual failures)
@@ -524,11 +600,13 @@ for (let i = 0; i < users.length; i += batchSize) {
 ```
 
 #### 11. Web Landing Page
+
 **Location:** `web/app/personifeed/page.tsx`
 
 **Reuse:** 95% - Reuses entire Next.js app infrastructure
 
 **What's new:**
+
 - Signup form with email + prompt inputs
 - Character counter (max 2000)
 - Form validation and submission
@@ -537,20 +615,20 @@ for (let i = 0; i < users.length; i += batchSize) {
 
 ### Reuse Summary Table
 
-| Component | Reuse % | Changes Required | Location |
-|-----------|---------|------------------|----------|
-| Logger | 100% | None | `_shared/logger.ts` |
-| Retry Logic | 100% | None | `_shared/retryLogic.ts` |
-| Config | 95% | Add personifeed vars | `_shared/config.ts` |
-| Error Types | 100% | None | `_shared/errors.ts` |
-| Types | 80% | Add User, Customization, Newsletter | `_shared/types.ts` |
-| Email Sender | 90% | Add dynamic address functions | `_shared/emailSender.ts` |
-| LLM Client | 80% | Add newsletter generation | `_shared/llmClient.ts` + `personifeed-cron/newsletterGenerator.ts` |
-| Email Parser | 85% | Add userId extraction | `personifeed-reply/emailParser.ts` |
-| Web App | 95% | New route + signup form | `web/app/personifeed/page.tsx` |
-| Database Layer | 0% | Build from scratch | Each function's `database.ts` |
-| Cron Job | 0% | Build from scratch | `personifeed-cron/index.ts` |
-| **Total** | **~70%** | **Various** | **~1,200 lines new code** |
+| Component      | Reuse %  | Changes Required                    | Location                                                           |
+| -------------- | -------- | ----------------------------------- | ------------------------------------------------------------------ |
+| Logger         | 100%     | None                                | `_shared/logger.ts`                                                |
+| Retry Logic    | 100%     | None                                | `_shared/retryLogic.ts`                                            |
+| Config         | 95%      | Add personifeed vars                | `_shared/config.ts`                                                |
+| Error Types    | 100%     | None                                | `_shared/errors.ts`                                                |
+| Types          | 80%      | Add User, Customization, Newsletter | `_shared/types.ts`                                                 |
+| Email Sender   | 90%      | Add dynamic address functions       | `_shared/emailSender.ts`                                           |
+| LLM Client     | 80%      | Add newsletter generation           | `_shared/llmClient.ts` + `personifeed-cron/newsletterGenerator.ts` |
+| Email Parser   | 85%      | Add userId extraction               | `personifeed-reply/emailParser.ts`                                 |
+| Web App        | 95%      | New route + signup form             | `web/app/personifeed/page.tsx`                                     |
+| Database Layer | 0%       | Build from scratch                  | Each function's `database.ts`                                      |
+| Cron Job       | 0%       | Build from scratch                  | `personifeed-cron/index.ts`                                        |
+| **Total**      | **~70%** | **Various**                         | **~1,200 lines new code**                                          |
 
 ---
 
@@ -561,6 +639,7 @@ for (let i = 0; i < users.length; i += batchSize) {
 **Purpose:** Represents a newsletter subscriber.
 
 **Schema:**
+
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -576,6 +655,7 @@ CREATE INDEX idx_users_active ON users(active) WHERE active = TRUE;
 ```
 
 **TypeScript Interface:**
+
 ```typescript
 interface User {
   id: string;
@@ -590,6 +670,7 @@ interface User {
 **Purpose:** Stores initial preferences and user feedback.
 
 **Schema:**
+
 ```sql
 CREATE TABLE customizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -606,6 +687,7 @@ CREATE INDEX idx_customizations_created_at ON customizations(created_at);
 ```
 
 **TypeScript Interface:**
+
 ```typescript
 interface Customization {
   id: string;
@@ -621,6 +703,7 @@ interface Customization {
 **Purpose:** Tracks generated newsletters and delivery status.
 
 **Schema:**
+
 ```sql
 CREATE TABLE newsletters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -637,6 +720,7 @@ CREATE INDEX idx_newsletters_sent_at ON newsletters(sent_at);
 ```
 
 **TypeScript Interface:**
+
 ```typescript
 interface Newsletter {
   id: string;
@@ -659,6 +743,7 @@ interface Newsletter {
 **Endpoint:** `POST /personifeed-signup` (public, CORS-enabled)
 
 **Request:**
+
 ```json
 {
   "email": "user@example.com",
@@ -667,6 +752,7 @@ interface Newsletter {
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -676,6 +762,7 @@ interface Newsletter {
 ```
 
 **Flow:**
+
 1. Validate email format and prompt length
 2. Check if user exists
 3. If exists: Add new initial customization
@@ -691,6 +778,7 @@ interface Newsletter {
 **Trigger:** Supabase Cron (daily at 11am ET)
 
 **Flow:**
+
 1. Fetch all active users
 2. For each user (parallel batches of 10):
    - Fetch customizations
@@ -700,6 +788,7 @@ interface Newsletter {
 3. Log execution summary
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -722,6 +811,7 @@ interface Newsletter {
 **Endpoint:** `POST /personifeed-reply` (public, SendGrid webhook)
 
 **Flow:**
+
 1. Parse SendGrid webhook payload
 2. Extract userId from TO address (`reply+{userId}@domain`)
 3. Fast database lookup by userId
@@ -739,6 +829,7 @@ interface Newsletter {
 **Route:** `https://llmbox.pro/personifeed`
 
 **Features:**
+
 - Email + prompt signup form
 - Character counter (max 2000)
 - Client-side validation
@@ -864,6 +955,7 @@ cd web && vercel deploy --prod
 ### Configuration Files
 
 **`supabase/config.toml`:**
+
 ```toml
 [functions.personifeed-signup]
 verify_jwt = false  # Public endpoint
@@ -879,6 +971,7 @@ import_map = './import_map.json'
 ```
 
 **`supabase/import_map.json`:**
+
 ```json
 {
   "imports": {
@@ -892,11 +985,13 @@ import_map = './import_map.json'
 ### SendGrid Configuration
 
 **Inbound Parse:**
+
 - Domain: `mail.llmbox.pro`
 - URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-reply`
 - Captures: `reply+*@mail.llmbox.pro` (wildcard pattern)
 
 **DNS:**
+
 ```
 mail.llmbox.pro.  MX  10  mx.sendgrid.net.
 ```
@@ -905,9 +1000,9 @@ mail.llmbox.pro.  MX  10  mx.sendgrid.net.
 
 In Supabase Dashboard → Database → Cron Jobs:
 
-**Name:** `personifeed-daily-newsletter`
-**Schedule:** `0 15 * * *` (11am ET = 3pm UTC, adjust for DST)
-**SQL:**
+**Name:** `personifeed-daily-newsletter` **Schedule:** `0 15 * * *` (11am ET = 3pm UTC, adjust for
+DST) **SQL:**
+
 ```sql
 SELECT
   net.http_post(
@@ -923,6 +1018,7 @@ SELECT
 ### Logging
 
 **View logs:**
+
 ```bash
 deno task logs:signup       # Signup function
 deno task logs:cron         # Cron function
@@ -931,6 +1027,7 @@ deno task logs:cron:tail    # Live tail
 ```
 
 **Key log events:**
+
 - `user_signup` - New signup or existing user update
 - `cron_started` / `cron_completed` - Cron execution
 - `newsletter_generated` - OpenAI generation complete
@@ -942,16 +1039,19 @@ deno task logs:cron:tail    # Live tail
 ### Database Queries
 
 **Active users:**
+
 ```sql
 SELECT COUNT(*) FROM users WHERE active = true;
 ```
 
 **Recent signups:**
+
 ```sql
 SELECT email, created_at FROM users ORDER BY created_at DESC LIMIT 10;
 ```
 
 **Newsletter delivery rate:**
+
 ```sql
 SELECT
   DATE(sent_at) as date,
@@ -965,6 +1065,7 @@ ORDER BY date DESC;
 ```
 
 **User engagement:**
+
 ```sql
 SELECT
   u.email,
@@ -979,6 +1080,7 @@ LIMIT 10;
 ### Manual Testing
 
 **Test signup:**
+
 ```bash
 curl -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-signup \
   -H "Content-Type: application/json" \
@@ -986,11 +1088,13 @@ curl -X POST https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-s
 ```
 
 **Trigger cron manually:**
+
 ```bash
 deno task trigger:cron
 ```
 
 **Test reply (send email to):**
+
 ```
 reply+[user-id]@mail.llmbox.pro
 ```
@@ -1000,21 +1104,25 @@ reply+[user-id]@mail.llmbox.pro
 ## Security
 
 ### Input Validation
+
 - Email: RFC 5322 regex validation
 - Prompt: Length check (1-2000 characters)
 - HTML sanitization: Strip tags from user input
 
 ### Authentication
+
 - **Signup/Reply**: Public endpoints (no auth required)
 - **Cron**: JWT verification enabled (only Supabase can trigger)
 - **Database**: Service role key (elevated permissions, server-side only)
 
 ### Secrets Management
+
 - Development: `.env.local` (gitignored)
 - Production: Supabase Secrets
 - Required: `OPENAI_API_KEY`, `SENDGRID_API_KEY`, `PERSONIFEED_EMAIL_DOMAIN`
 
 ### Data Protection
+
 - HTTPS for all API calls
 - PostgreSQL encryption at rest (automatic)
 - PII: Email addresses stored; logs preview only (first 100 chars)
@@ -1026,12 +1134,12 @@ reply+[user-id]@mail.llmbox.pro
 
 ### Targets
 
-| Operation | Target | Actual |
-|-----------|--------|--------|
-| Signup | < 2s | ~1s |
-| Newsletter generation (per user) | < 30s | ~15-20s |
-| Cron job (100 users) | < 5 min | ~3-4 min |
-| Reply confirmation | < 5s | ~2s |
+| Operation                        | Target  | Actual   |
+| -------------------------------- | ------- | -------- |
+| Signup                           | < 2s    | ~1s      |
+| Newsletter generation (per user) | < 30s   | ~15-20s  |
+| Cron job (100 users)             | < 5 min | ~3-4 min |
+| Reply confirmation               | < 5s    | ~2s      |
 
 ### Optimizations
 
@@ -1045,9 +1153,13 @@ reply+[user-id]@mail.llmbox.pro
 
 ## Conclusion
 
-personi[feed] successfully leverages **~70% of llmbox's infrastructure** to deliver a production-ready personalized newsletter service. The implementation follows Supabase Edge Functions best practices, uses dynamic reply addresses for efficient routing, and maintains clear separation between the two services while maximizing code reuse.
+personi[feed] successfully leverages **~70% of llmbox's infrastructure** to deliver a
+production-ready personalized newsletter service. The implementation follows Supabase Edge Functions
+best practices, uses dynamic reply addresses for efficient routing, and maintains clear separation
+between the two services while maximizing code reuse.
 
 **Key Achievements:**
+
 - ✅ Deployed to production (Supabase project nopocimtfthppwssohty)
 - ✅ Dynamic reply addresses for efficient user identification
 - ✅ Proper `_shared/` folder structure following Supabase guidelines
@@ -1058,6 +1170,7 @@ personi[feed] successfully leverages **~70% of llmbox's infrastructure** to deli
 - ✅ Daily cron execution at 11am ET
 
 **Production URLs:**
+
 - **Signup**: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-signup`
 - **Cron**: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-cron`
 - **Reply**: `https://nopocimtfthppwssohty.supabase.co/functions/v1/personifeed-reply`

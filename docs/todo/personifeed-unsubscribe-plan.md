@@ -2,7 +2,9 @@
 
 ## Overview
 
-Add unsubscribe functionality to allow users to opt-out of receiving daily newsletters while maintaining their data for potential re-subscription. This feature will include an unsubscribe link in every newsletter, a dedicated unsubscribe page, and email-based unsubscribe handling.
+Add unsubscribe functionality to allow users to opt-out of receiving daily newsletters while
+maintaining their data for potential re-subscription. This feature will include an unsubscribe link
+in every newsletter, a dedicated unsubscribe page, and email-based unsubscribe handling.
 
 ## Goals
 
@@ -13,7 +15,8 @@ Add unsubscribe functionality to allow users to opt-out of receiving daily newsl
 
 ## User Stories
 
-1. **As a user**, I want to click an unsubscribe link in my newsletter so I can stop receiving emails immediately
+1. **As a user**, I want to click an unsubscribe link in my newsletter so I can stop receiving
+   emails immediately
 2. **As a user**, I want to reply "unsubscribe" to stop receiving newsletters via email
 3. **As a user**, I want confirmation when I unsubscribe so I know it worked
 4. **As a user**, I want to easily re-subscribe if I change my mind
@@ -41,12 +44,14 @@ Alternative: Email-based unsubscribe
 ### Database Changes
 
 **No schema changes required** - the `users.active` boolean already exists:
+
 ```sql
 -- Already in schema:
 -- active BOOLEAN DEFAULT TRUE
 ```
 
 **Add index for queries**:
+
 ```sql
 -- Already exists:
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(active) WHERE active = TRUE;
@@ -61,11 +66,13 @@ CREATE INDEX IF NOT EXISTS idx_users_active ON users(active) WHERE active = TRUE
 **Location**: `supabase/functions/personifeed-unsubscribe/`
 
 **Files**:
+
 - `index.ts` - Main handler
 - `database.ts` - Database operations
 - `validation.ts` - Input validation
 
 **API Contract**:
+
 ```typescript
 // POST /functions/v1/personifeed-unsubscribe
 {
@@ -81,12 +88,14 @@ CREATE INDEX IF NOT EXISTS idx_users_active ON users(active) WHERE active = TRUE
 ```
 
 **Security**:
+
 - Token-based verification (prevent malicious unsubscribes)
 - Token = base64(userId + timestamp + HMAC signature)
 - Token expires after 90 days
 - Rate limiting (10 requests per IP per minute)
 
 **Database Operations**:
+
 ```typescript
 // Set user.active = false
 const unsubscribeUser = async (userId: string): Promise<void> => {
@@ -122,6 +131,7 @@ Don't want to receive these emails? [Unsubscribe](https://personifeed.llmbox.pro
 ```
 
 **Token Generation**:
+
 ```typescript
 const generateUnsubscribeToken = (userId: string): string => {
   const timestamp = Date.now().toString();
@@ -151,13 +161,12 @@ const UNSUBSCRIBE_KEYWORDS = [
 
 const detectUnsubscribeIntent = (body: string): boolean => {
   const normalized = body.toLowerCase().trim();
-  return UNSUBSCRIBE_KEYWORDS.some(keyword =>
-    normalized.includes(keyword)
-  );
+  return UNSUBSCRIBE_KEYWORDS.some((keyword) => normalized.includes(keyword));
 };
 ```
 
 **Handler Logic**:
+
 ```typescript
 // In handleReply function, before storing feedback:
 if (detectUnsubscribeIntent(body)) {
@@ -170,10 +179,11 @@ if (detectUnsubscribeIntent(body)) {
 ```
 
 **Confirmation Email**:
+
 ```typescript
 const sendUnsubscribeConfirmation = async (
   userId: string,
-  email: string
+  email: string,
 ): Promise<void> => {
   const subject = "You've been unsubscribed from personi[feed]";
   const body = `
@@ -194,6 +204,7 @@ Thanks for being part of personi[feed].
 **Purpose**: Landing page for unsubscribe confirmations
 
 **Features**:
+
 - Parse token from URL query parameter
 - Verify token signature and expiration
 - Call unsubscribe API
@@ -201,12 +212,14 @@ Thanks for being part of personi[feed].
 - Provide re-subscribe link
 
 **UI States**:
+
 1. **Loading**: "Processing your request..."
 2. **Success**: "You've been unsubscribed. Sorry to see you go!"
 3. **Error (invalid token)**: "This unsubscribe link is invalid or expired."
 4. **Error (already unsubscribed)**: "You're already unsubscribed."
 
 **Components**:
+
 ```typescript
 // UnsubscribePage.tsx
 - Parse URL parameters
@@ -224,6 +237,7 @@ Thanks for being part of personi[feed].
 **Purpose**: Allow users to re-subscribe
 
 **Features**:
+
 - Similar to unsubscribe page
 - Sets user.active = true
 - Shows success message
@@ -232,17 +246,20 @@ Thanks for being part of personi[feed].
 ### Security Considerations
 
 #### Token Security
+
 - Use HMAC-SHA256 for signature verification
 - Include timestamp to prevent replay attacks
 - Token expiration: 90 days
 - Store secret key in Supabase secrets: `UNSUBSCRIBE_SECRET_KEY`
 
 #### Rate Limiting
+
 - Prevent abuse of unsubscribe endpoint
 - 10 requests per IP per minute
 - Use Supabase Edge Function rate limiting or implement custom
 
 #### Email Validation
+
 - Verify email exists in database before unsubscribe
 - Prevent information leakage (don't reveal if email exists)
 - Return generic success message regardless
@@ -339,6 +356,7 @@ NEXT_PUBLIC_PERSONIFEED_DOMAIN=personifeed.llmbox.pro
 ### Deployment Steps
 
 #### Phase 1: Backend (Edge Functions)
+
 1. Create `personifeed-unsubscribe` function
 2. Update `personifeed-reply` with keyword detection
 3. Deploy functions: `deno task deploy:personifeed:all`
@@ -346,18 +364,21 @@ NEXT_PUBLIC_PERSONIFEED_DOMAIN=personifeed.llmbox.pro
 5. Test API endpoints directly (curl)
 
 #### Phase 2: Email Templates
+
 1. Update `personifeed-cron/emailSender.ts` with footer template
 2. Add unsubscribe confirmation email function
 3. Deploy: `deno task deploy:personifeed:cron`
 4. Test with sample newsletter
 
 #### Phase 3: Web Pages
+
 1. Create unsubscribe page component
 2. Create resubscribe page component
 3. Test locally: `deno task web:dev`
 4. Deploy to Vercel: `vercel deploy --prod`
 
 #### Phase 4: Testing & Monitoring
+
 1. Run integration tests
 2. Test with real email account
 3. Monitor logs for errors
@@ -400,6 +421,7 @@ ORDER BY date DESC;
 ### Cost Impact
 
 **Minimal additional costs**:
+
 - Edge function invocations: ~$0 (within free tier for low volume)
 - SendGrid emails: ~$0 (confirmation emails within free tier)
 - Storage: ~$0 (no additional data stored)
@@ -409,12 +431,14 @@ ORDER BY date DESC;
 ### Compliance Notes
 
 #### CAN-SPAM Act Requirements
+
 - ✅ Clear identification as advertisement (if applicable)
 - ✅ Include valid physical postal address (add to footer)
 - ✅ Provide clear opt-out mechanism (unsubscribe link)
 - ✅ Honor opt-outs within 10 business days (instant in our case)
 
 #### GDPR Requirements
+
 - ✅ Explicit consent (user signs up intentionally)
 - ✅ Easy withdrawal of consent (unsubscribe)
 - ✅ Data retention policy (keep user data for re-subscription)
@@ -441,17 +465,18 @@ ORDER BY date DESC;
 
 ### Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Token leakage | High | Use HMAC signatures, short expiration |
-| Mass unsubscribe attack | Medium | Rate limiting, CAPTCHA (future) |
-| Accidental unsubscribe | Low | Confirmation step, easy re-subscribe |
-| Lost token | Low | Allow unsubscribe by email too |
-| Database failure | High | Retry logic, error monitoring |
+| Risk                    | Impact | Mitigation                            |
+| ----------------------- | ------ | ------------------------------------- |
+| Token leakage           | High   | Use HMAC signatures, short expiration |
+| Mass unsubscribe attack | Medium | Rate limiting, CAPTCHA (future)       |
+| Accidental unsubscribe  | Low    | Confirmation step, easy re-subscribe  |
+| Lost token              | Low    | Allow unsubscribe by email too        |
+| Database failure        | High   | Retry logic, error monitoring         |
 
 ## File Changes Summary
 
 ### New Files
+
 ```
 supabase/functions/personifeed-unsubscribe/
   ├── index.ts                    # Main handler
@@ -476,6 +501,7 @@ docs/
 ```
 
 ### Modified Files
+
 ```
 supabase/functions/personifeed-cron/emailSender.ts
   - Add unsubscribe link to footer
@@ -499,6 +525,7 @@ PERSONIFEED-README.md
 ## Implementation Checklist
 
 ### Backend
+
 - [ ] Create `personifeed-unsubscribe` Edge Function
 - [ ] Add token generation utility
 - [ ] Add token verification utility
@@ -512,6 +539,7 @@ PERSONIFEED-README.md
 - [ ] Set secrets
 
 ### Frontend
+
 - [ ] Create unsubscribe page component
 - [ ] Create resubscribe page component
 - [ ] Add loading states
@@ -521,6 +549,7 @@ PERSONIFEED-README.md
 - [ ] Deploy to Vercel
 
 ### Testing
+
 - [ ] Test unsubscribe via web link
 - [ ] Test unsubscribe via email reply
 - [ ] Test re-subscribe flow
@@ -531,6 +560,7 @@ PERSONIFEED-README.md
 - [ ] Manual end-to-end test
 
 ### Documentation
+
 - [ ] Update PERSONIFEED-README.md
 - [ ] Update API documentation
 - [ ] Add troubleshooting guide
@@ -538,6 +568,7 @@ PERSONIFEED-README.md
 - [ ] Document monitoring queries
 
 ### Compliance
+
 - [ ] Add physical address to footer
 - [ ] Verify CAN-SPAM compliance
 - [ ] Verify GDPR compliance
@@ -564,8 +595,9 @@ PERSONIFEED-README.md
 
 ## References
 
-- CAN-SPAM Act: https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business
+- CAN-SPAM Act:
+  https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business
 - GDPR Email Marketing: https://gdpr.eu/email-marketing/
 - SendGrid Best Practices: https://sendgrid.com/blog/email-best-practices/
-- Unsubscribe Link Requirements: https://developers.google.com/gmail/markup/reference/one-click-unsubscribe
-
+- Unsubscribe Link Requirements:
+  https://developers.google.com/gmail/markup/reference/one-click-unsubscribe

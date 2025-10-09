@@ -1,6 +1,7 @@
 # Integration Tests
 
-Integration tests that make **real API calls** to OpenAI and SendGrid. These verify the application works with actual external services.
+Integration tests that make **real API calls** to OpenAI and SendGrid. These verify the application
+works with actual external services.
 
 ## ⚠️ Important
 
@@ -52,13 +53,13 @@ deno test tests/integration/end-to-end.test.ts --allow-all --allow-env
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **Tests skipped** | Verify environment variables are set: `echo $OPENAI_API_KEY` |
-| **401 errors** | Verify API keys are correct and have proper permissions |
+| Issue                   | Solution                                                                   |
+| ----------------------- | -------------------------------------------------------------------------- |
+| **Tests skipped**       | Verify environment variables are set: `echo $OPENAI_API_KEY`               |
+| **401 errors**          | Verify API keys are correct and have proper permissions                    |
 | **Emails not arriving** | Check spam folder, verify sender in SendGrid, check SendGrid activity logs |
-| **Timeout errors** | Check internet connection, increase timeout env vars |
-| **Rate limits** | Wait before retrying, check API plan limits |
+| **Timeout errors**      | Check internet connection, increase timeout env vars                       |
+| **Rate limits**         | Wait before retrying, check API plan limits                                |
 
 ## Best Practices
 
@@ -73,4 +74,3 @@ deno test tests/integration/end-to-end.test.ts --allow-all --allow-env
 - [OpenAI API Docs](https://platform.openai.com/docs)
 - [SendGrid API Docs](https://docs.sendgrid.com/)
 - Main [README.md](../../README.md) for project setup
-

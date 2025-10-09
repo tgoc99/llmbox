@@ -3,9 +3,9 @@
  */
 
 import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { User, Customization, Newsletter } from '../_shared/types.ts';
+import type { Customization, Newsletter, User } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logInfo, logError } from '../_shared/logger.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
 
 /**
  * Get all active users
@@ -144,4 +144,3 @@ export const updateNewsletterStatus = async (
 
   logInfo('newsletter_status_updated', { newsletterId, status });
 };
-

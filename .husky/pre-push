@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# Run the full check task
+deno task check || {
+  echo "❌ Pre-push checks failed. Fix the issues above before pushing."
+  exit 1
+}
+
+echo "✅ All pre-push checks passed! Safe to push."
+
