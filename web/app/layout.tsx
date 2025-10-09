@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'No app downloads. No sign-ups. Just send an email and get intelligent responses powered by OpenAI.',
   keywords: ['AI', 'email', 'chatbot', 'OpenAI', 'GPT', 'assistant'],
   authors: [{ name: 'LLMBox' }],
+  icons: 'https://www.emoji.family/api/emojis/1f4e7/noto/svg',
   openGraph: {
     title: 'LLMBox - Chat with AI Through Email',
     description: 'No app downloads. No sign-ups. Just send an email and get intelligent responses powered by OpenAI.',

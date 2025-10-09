@@ -1,6 +1,17 @@
-import { Mail, Sparkles } from 'lucide-react';
+'use client';
+
+import { Mail, Sparkles, Copy, Check, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
 
 const Hero = (): JSX.Element => {
+  const [copied, setCopied] = useState(false);
+  const emailAddress = 'assistant@mail.llmbox.pro';
+
+  const handleCopyEmail = (): void => {
+    navigator.clipboard.writeText(emailAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <section className="relative bg-gradient-to-br from-primary-50 via-white to-primary-50 overflow-hidden">
       {/* Background decoration */}
@@ -62,14 +73,41 @@ const Hero = (): JSX.Element => {
                     Send email to:
                   </div>
                   <div className="text-lg font-mono font-semibold text-primary-600 break-all">
-                    assistant@mail.llmbox.pro
+                    {emailAddress}
                   </div>
                 </div>
+                <button
+                  onClick={handleCopyEmail}
+                  className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-medium text-sm rounded-lg hover:bg-primary-700 transition-colors duration-200"
+                  aria-label="Copy email address"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
               </div>
               <div className="pl-13">
                 <p className="text-sm text-subtle italic">
                   &quot;Can you help me brainstorm ideas for my project?&quot;
                 </p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <a
+                  href={`mailto:${emailAddress}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-medium text-sm rounded-lg hover:bg-primary-700 transition-colors duration-200 w-full sm:w-auto justify-center"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Open Email Client</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
               </div>
             </div>
             <p className="mt-4 text-sm text-subtle">
