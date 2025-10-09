@@ -29,6 +29,9 @@ const HomePage = (): JSX.Element => {
               <a href='#how-it-works' className='hover:text-white transition-colors'>
                 How It Works
               </a>
+              <a href='/personifeed' className='hover:text-white transition-colors'>
+                personi[feed]
+              </a>
             </div>
           </div>
 
