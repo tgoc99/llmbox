@@ -185,51 +185,12 @@ export const generateEmailResponse = async (email: IncomingEmail): Promise<LLMRe
   const instructions = `You are a helpful assistant that users access via email.
     Respond professionally and concisely.
     If you use web search, cite your sources.
-    If you feel the need to add a parting salutation to the text, sign off as LLMBox.`;
+    If you feel the need to add a parting salutation to the text, sign off as LLMBox.
+    Never add [Your Name] or [Your Company] in the signature.`;
 
   return await generateLLMResponse({
     instructions,
     input,
     logContext: { messageId: email.messageId },
-  });
-};
-
-/**
- * Generate newsletter content using Responses API
- * Convenience function for personifeed
- * @throws Error if OpenAI API fails after retries
- */
-export const generateNewsletterContent = async (
-  userId: string,
-  userEmail: string,
-  userContext: string,
-): Promise<LLMResponse> => {
-  const todayDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const instructions =
-    `You are creating a personalized daily newsletter. Use the user's preferences and any customization feedback to generate relevant, engaging content.
-
-Guidelines:
-- Keep the newsletter concise (500-1000 words)
-- Include today's date in the header
-- Format content with clear sections and headings
-- Be conversational and engaging
-- Prioritize the user's stated interests and preferences
-- If the user has provided feedback, incorporate their suggestions
-- Use markdown formatting for better readability
-- Use web search to find current, relevant information based on user interests`;
-
-  const input = `${userContext}Generate today's personalized newsletter for ${todayDate}.`;
-
-  return await generateLLMResponse({
-    instructions,
-    input,
-    enableWebSearch: true, // Always enable web search for newsletters
-    logContext: { userId, email: userEmail },
   });
 };

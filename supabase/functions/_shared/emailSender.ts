@@ -6,6 +6,7 @@
 
 import sgMail from 'npm:@sendgrid/mail@8.1.6';
 import { config } from './config.ts';
+import { generateNewsletterEmailHtml, generateReplyEmailHtml } from './emailTemplates.ts';
 import { logCritical, logError, logInfo } from './logger.ts';
 import type { IncomingEmail, LLMResponse, OutgoingEmail } from './types.ts';
 
@@ -63,11 +64,15 @@ export const formatReplyEmail = (
     .map((ref) => ensureAngleBrackets(ref))
     .filter((ref) => ref.length > 0);
 
+  // Generate HTML version from markdown content
+  const htmlBody = generateReplyEmailHtml(llmResponse.content);
+
   return {
     from: incoming.to,
     to: incoming.from,
     subject,
     body: llmResponse.content,
+    htmlBody: htmlBody,
     inReplyTo: incoming.messageId,
     references,
   };
@@ -95,8 +100,10 @@ export interface SendEmailOptions {
   from: string;
   /** Email subject */
   subject: string;
-  /** Email body (plain text) */
+  /** Email body (plain text or markdown) */
   body: string;
+  /** Optional HTML version of email body */
+  htmlBody?: string;
   /** Message ID this email replies to (optional) */
   inReplyTo?: string;
   /** Thread references (optional) */
@@ -112,7 +119,16 @@ export interface SendEmailOptions {
  * @throws Error if send fails
  */
 export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
-  const { to, from, subject, body, inReplyTo, references = [], logContext = {} } = options;
+  const {
+    to,
+    from,
+    subject,
+    body,
+    htmlBody,
+    inReplyTo,
+    references = [],
+    logContext = {},
+  } = options;
 
   initializeSendGrid();
 
@@ -137,6 +153,7 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
     from,
     subject,
     text: body,
+    html: htmlBody, // Include HTML version if provided
     headers: Object.keys(headers).length > 0 ? headers : undefined,
   };
 
@@ -239,6 +256,7 @@ export const sendReplyEmail = async (email: OutgoingEmail): Promise<void> => {
     from: email.from,
     subject: email.subject,
     body: email.body,
+    htmlBody: email.htmlBody,
     inReplyTo: email.inReplyTo,
     references: email.references,
     logContext: { messageId: email.inReplyTo },
@@ -249,7 +267,7 @@ export const sendReplyEmail = async (email: OutgoingEmail): Promise<void> => {
  * Send newsletter email (personifeed use case)
  * @param userId - User ID
  * @param userEmail - User's email address
- * @param content - Newsletter content
+ * @param content - Newsletter content (markdown format)
  * @throws Error if send fails
  */
 export const sendNewsletterEmail = async (
@@ -266,11 +284,18 @@ export const sendNewsletterEmail = async (
 
   const subject = `Your Daily Digest - ${todayDate}`;
 
-  const emailBody = `${content}
+  // Plain text version (markdown with footer)
+  const textBody = `${content}
 
 ---
 
 Reply to this email to customize future newsletters.`;
+
+  // HTML version (rendered from markdown)
+  const htmlBody = generateNewsletterEmailHtml(content, {
+    headerText: `Your Daily Digest - ${todayDate}`,
+    footerText: 'Reply to this email to customize future newsletters.',
+  });
 
   // Use dynamic reply address based on user ID
   const fromAddress = getReplyAddress(userId);
@@ -279,7 +304,8 @@ Reply to this email to customize future newsletters.`;
     to: userEmail,
     from: fromAddress,
     subject,
-    body: emailBody,
+    body: textBody,
+    htmlBody: htmlBody,
     logContext: { userId, email: userEmail, fromAddress },
   });
 };
