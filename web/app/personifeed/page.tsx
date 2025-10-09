@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useState } from 'react';
+import { PersonifeedLogo } from '@/components/PersonifeedLogo';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ||
   'https://nopocimtfthppwssohty.supabase.co';
@@ -66,9 +67,9 @@ const PersonifeedPage = (): JSX.Element => {
         <div className='max-w-4xl mx-auto'>
           {/* Header */}
           <div className='text-center mb-12'>
-            <h1 className='text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent'>
-              personi[feed]
-            </h1>
+            <div className='mb-6 flex justify-center'>
+              <PersonifeedLogo size='xl' />
+            </div>
             <p className='text-xl md:text-2xl text-gray-700 mb-4'>
               Your AI-powered daily digest, tailored to you
             </p>
@@ -196,7 +197,11 @@ const PersonifeedPage = (): JSX.Element => {
 
           {/* Features */}
           <div className='mt-16 bg-white rounded-2xl shadow-xl p-8'>
-            <h2 className='text-2xl font-bold text-center mb-8'>Why personi[feed]?</h2>
+            <div className='flex justify-center mb-8'>
+              <span className='text-2xl font-bold mr-2'>Why</span>
+              <PersonifeedLogo size='md' />
+              <span className='text-2xl font-bold ml-2'>?</span>
+            </div>
             <div className='grid md:grid-cols-2 gap-6'>
               <div className='flex items-start gap-4'>
                 <span className='text-2xl'>🎯</span>
@@ -247,7 +252,12 @@ const PersonifeedPage = (): JSX.Element => {
         <div className='container-custom'>
           <div className='flex flex-col md:flex-row justify-between items-center gap-6'>
             <div className='text-center md:text-left'>
-              <div className='text-xl font-bold text-white mb-2'>personi[feed]</div>
+              <PersonifeedLogo
+                size='sm'
+                primaryColor='text-white'
+                accentColor='text-gray-400'
+                className='mb-2'
+              />
               <p className='text-sm'>Your AI-powered daily digest</p>
             </div>
 
