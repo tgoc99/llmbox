@@ -22,6 +22,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
+| 2025-10-09 | 1.1 | Updated to use shared Next.js app at llmbox.pro/personifeed route instead of separate web application | PM Agent |
 | 2025-10-09 | 1.0 | Initial PRD | PM Agent |
 
 ---
@@ -31,7 +32,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 ### Functional Requirements
 
 **FR1**: Landing page for newsletter signup
-- Next.js landing page with email input field
+- Next.js landing page at `/personifeed` route with email input field
 - Large text area for initial prompt (e.g., "Send me the top 3 AI news stories, a motivational quote, and the weather in NYC")
 - Submit button to register for daily newsletter
 - No password or authentication required
@@ -110,7 +111,7 @@ Unlike llmbox (which is conversational and stateless), personi[feed] requires pe
 ### Repository Structure: Monorepo (shared with llmbox)
 - Single repository for both llmbox and personi[feed]
 - Separate Supabase Edge Functions for each service but shared folder with utils per this https://supabase.com/docs/guides/functions/development-tips
-- Shared web landing pages (separate directories)
+- Shared Next.js web application with routes for both services (llmbox.pro/ and llmbox.pro/personifeed)
 - Shared utilities where applicable (logger, config, retry logic, e-mail sending)
 
 ### Service Architecture: Serverless + Database
@@ -234,7 +235,7 @@ Add reply email webhook, feedback storage, and confirmation emails - enabling us
 
 #### Acceptance Criteria
 
-1. Next.js 14 app created in `web-personifeed/` directory
+1. New route created at `web/app/personifeed/page.tsx` in existing Next.js app
 2. Landing page includes:
    - Hero section with service name and tagline
    - Clear value proposition (e.g., "Your AI-powered daily digest, tailored to you")
@@ -243,7 +244,7 @@ Add reply email webhook, feedback storage, and confirmation emails - enabling us
    - Submit button ("Start My Daily Newsletter")
    - Character count for prompt (max 2000)
 3. Responsive design (mobile, tablet, desktop)
-4. TailwindCSS styling matching modern design standards
+4. TailwindCSS styling matching existing llmbox web app design
 5. Form validation: email format, non-empty prompt
 6. Loading state on submit (spinner + disabled button)
 7. Success message after submission

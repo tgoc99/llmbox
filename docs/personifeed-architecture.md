@@ -8,18 +8,20 @@ This document outlines the overall project architecture for **personi[feed]**, a
 
 **Built on llmbox Foundation**
 
-personi[feed] is developed within the same monorepo as llmbox and extensively reuses battle-tested components including OpenAI integration, SendGrid email handling, structured logging, retry logic, and Next.js web infrastructure. This approach dramatically reduces development time and ensures reliability.
+personi[feed] is developed within the same monorepo as llmbox and extensively reuses battle-tested components including OpenAI integration, SendGrid email handling, structured logging, retry logic, and Next.js web infrastructure. The web interface is deployed as a route (`/personifeed`) within the existing llmbox.pro Next.js application, maximizing code reuse and simplifying deployment. This approach dramatically reduces development time and ensures reliability.
 
 **Key Architectural Differences:**
 - **Persistence**: Database-backed (Supabase PostgreSQL) vs. stateless
 - **Trigger**: Cron-scheduled vs. webhook-triggered
 - **Use Case**: Newsletter generation vs. conversational AI
 - **User Model**: Subscription-based vs. ad-hoc email interactions
+- **Web Deployment**: Shared Next.js app with separate routes vs. same deployment infrastructure
 
 ### Change Log
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
+| 2025-10-09 | 1.2 | Updated to use shared Next.js app with `/personifeed` route instead of separate web-personifeed directory | Architect |
 | 2025-10-09 | 1.1 | Updated to follow Supabase Edge Functions best practices (_shared folder, co-located tests, import_map.json, config.toml) | Architect |
 | 2025-10-09 | 1.0 | Initial Architecture | Architect |
 
@@ -83,8 +85,12 @@ llmbox/  (repository root)
 │   ├── migrations/
 │   │   └── YYYYMMDDHHMMSS_personifeed_schema.sql
 │   └── config.toml
-├── web/                          # llmbox landing page
-├── web-personifeed/              # personi[feed] landing page
+├── web/                          # Shared Next.js app (llmbox + personifeed)
+│   ├── app/
+│   │   ├── page.tsx              # llmbox landing page (/)
+│   │   └── personifeed/          # personi[feed] route
+│   │       └── page.tsx          # personi[feed] landing page (/personifeed)
+│   └── components/               # Shared components
 ├── tests/
 │   ├── unit/                     # Unit tests (for non-function code)
 │   └── integration/              # Integration tests
@@ -489,28 +495,32 @@ export const generateNewsletterContent = async (
 ### Components Requiring Full Rewrite
 
 #### 9. Web Landing Page
-**Location:** New directory `web-personifeed/`
+**Location:** New route `web/app/personifeed/page.tsx` in existing Next.js app
 
-**Reuse:** 80% - Reuse Next.js setup, TailwindCSS config, component patterns
+**Reuse:** 95% - Reuse entire Next.js app infrastructure, TailwindCSS config, component patterns
 
 **What's Reused:**
 - Next.js 14 + App Router configuration
 - TailwindCSS setup and theme
-- Component structure (Hero, Features, CTA)
-- Build and deployment scripts
+- Component structure and patterns (Hero, Features, CTA)
+- Build and deployment pipeline
+- Existing component library
 
 **What's New:**
+- New route at `/personifeed`
 - Signup form with email + prompt inputs
 - Form validation and submission logic
 - API integration with `personifeed-signup` Edge Function
-- Updated copy and branding
+- personifeed-specific copy and branding
 
 **Example Component Structure:**
 ```typescript
-// web-personifeed/components/SignupForm.tsx
+// web/app/personifeed/page.tsx
+'use client';
+
 import { useState } from 'react';
 
-export const SignupForm = () => {
+export default function PersonifeedPage() {
   const [email, setEmail] = useState('');
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -538,11 +548,11 @@ export const SignupForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Form fields */}
-    </form>
+    <div className="min-h-screen">
+      {/* Hero and signup form */}
+    </div>
   );
-};
+}
 ```
 
 ### New Components (Built from Scratch)
@@ -710,10 +720,10 @@ serve(async (req) => {
 | Email Parser | 90% | Minor adaptations | ~20 lines |
 | Email Sender | 85% | New send functions | ~80 lines |
 | LLM Client | 70% | New generation function | ~150 lines |
-| Web Landing Page | 80% | New signup form | ~400 lines |
+| Web Landing Page | 95% | New route + signup form | ~300 lines |
 | Database Layer | 0% | Build from scratch | ~300 lines |
 | Cron Job | 0% | Build from scratch | ~200 lines |
-| **Total** | **~65%** | **Various** | **~1,210 lines new** |
+| **Total** | **~70%** | **Various** | **~1,110 lines new** |
 
 **Estimated Development Time Savings:**
 - Without reuse: ~4-6 weeks
@@ -901,34 +911,36 @@ personifeed-reply/
 6. Send confirmation email
 7. Return 200 OK to SendGrid
 
-### 4. Next.js Landing Page (`web-personifeed`)
+### 4. Next.js Landing Page (personifeed route)
 
-**Responsibility:** User-facing website for signups.
+**Responsibility:** User-facing website for signups at `/personifeed` route.
 
 **Key Interfaces:**
-- HTTP GET: Landing page (static)
+- HTTP GET: Landing page at `/personifeed` (static)
 - HTTP POST (client-side): Call `personifeed-signup` Edge Function
 
 **Dependencies:**
 - External: `personifeed-signup` Edge Function
-- Internal: Reused Next.js 14 setup, TailwindCSS config
+- Internal: Existing Next.js 14 app, shared TailwindCSS config, shared components
 
 **Structure:**
 ```
-web-personifeed/
+web/
 ├── app/
-│   ├── layout.tsx        # Root layout with SEO
-│   ├── page.tsx          # Main landing page
-│   └── globals.css       # Global styles
+│   ├── layout.tsx        # Root layout (shared)
+│   ├── page.tsx          # llmbox landing page (/)
+│   ├── personifeed/      # NEW: personifeed route
+│   │   └── page.tsx      # personi[feed] landing page (/personifeed)
+│   └── globals.css       # Global styles (shared)
 ├── components/
-│   ├── Hero.tsx          # Hero section
-│   ├── SignupForm.tsx    # Email + prompt form (NEW)
-│   ├── Features.tsx      # Features grid
-│   └── HowItWorks.tsx    # How it works section
-├── public/               # Static assets
-├── package.json          # Dependencies
-├── tailwind.config.ts    # TailwindCSS config (reused)
-└── next.config.js        # Next.js config (reused)
+│   ├── Hero.tsx          # Hero section (shared/adapted)
+│   ├── Features.tsx      # Features grid (shared/adapted)
+│   ├── HowItWorks.tsx    # How it works section (shared/adapted)
+│   └── CTA.tsx           # CTA section (shared)
+├── public/               # Static assets (shared)
+├── package.json          # Dependencies (shared)
+├── tailwind.config.ts    # TailwindCSS config (shared)
+└── next.config.js        # Next.js config (shared)
 ```
 
 ---
@@ -1222,26 +1234,24 @@ llmbox/  (repository root)
 │   ├── migrations/
 │   │   └── 20251009000000_personifeed_schema.sql  # NEW: Database schema
 │   └── config.toml                     # Function configurations (JWT, import maps)
-├── web/                                 # llmbox landing page (existing)
+├── web/                                 # Shared Next.js app (llmbox + personifeed)
 │   ├── app/
+│   │   ├── layout.tsx                  # Root layout (shared)
+│   │   ├── page.tsx                    # llmbox landing page (/)
+│   │   ├── personifeed/                # NEW: personifeed route
+│   │   │   └── page.tsx                # personi[feed] landing page (/personifeed)
+│   │   └── globals.css                 # Global styles (shared)
 │   ├── components/
-│   └── ...
-├── web-personifeed/                     # NEW: personi[feed] landing page
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   └── globals.css
-│   ├── components/
-│   │   ├── Hero.tsx
-│   │   ├── SignupForm.tsx              # NEW: Main signup form
-│   │   ├── Features.tsx
-│   │   └── HowItWorks.tsx
-│   ├── public/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── tailwind.config.ts              # Reused from llmbox web
-│   ├── next.config.js
-│   └── README.md
+│   │   ├── Hero.tsx                    # Hero section (shared/adapted)
+│   │   ├── Features.tsx                # Features grid (shared/adapted)
+│   │   ├── HowItWorks.tsx              # How it works section (shared/adapted)
+│   │   └── CTA.tsx                     # CTA section (shared)
+│   ├── public/                         # Static assets (shared)
+│   ├── package.json                    # Dependencies (shared)
+│   ├── tsconfig.json                   # TypeScript config (shared)
+│   ├── tailwind.config.ts              # TailwindCSS config (shared)
+│   ├── next.config.js                  # Next.js config (shared)
+│   └── README.md                       # Updated with personifeed info
 ├── tests/
 │   ├── unit/                            # Unit tests for non-function code
 │   │   ├── emailParser.test.ts
@@ -1310,11 +1320,14 @@ supabase secrets set PERSONIFEED_REPLY_EMAIL=reply@mail.personifeed.com
 
 **Frontend (Vercel):**
 ```bash
-cd web-personifeed
+cd web
 vercel deploy --prod
 
-# Set environment variables in Vercel Dashboard
-# NEXT_PUBLIC_SIGNUP_URL=https://[supabase-url]/personifeed-signup
+# Set environment variables in Vercel Dashboard (if not already set)
+# NEXT_PUBLIC_PERSONIFEED_SIGNUP_URL=https://[supabase-url]/personifeed-signup
+
+# Note: Uses existing llmbox.pro deployment
+# Personifeed route will be available at llmbox.pro/personifeed
 ```
 
 ### Environments
@@ -1527,16 +1540,17 @@ vercel deploy --prod
 
 ## Conclusion
 
-personi[feed] leverages the robust foundation of llmbox to deliver a personalized daily newsletter service with minimal development time. By reusing **60-70% of llmbox's codebase** (logging, retry logic, OpenAI integration, SendGrid handling, Next.js setup), the project achieves **50-60% faster development** compared to building from scratch.
+personi[feed] leverages the robust foundation of llmbox to deliver a personalized daily newsletter service with minimal development time. By reusing **70% of llmbox's codebase** (logging, retry logic, OpenAI integration, SendGrid handling, complete Next.js infrastructure), the project achieves **50-60% faster development** compared to building from scratch.
 
-The database-backed architecture introduces persistence for user preferences and newsletter history, while scheduled cron execution replaces webhook-triggered processing. The result is a scalable, cost-effective MVP that can be deployed in **2-3 weeks** and supports future growth and feature expansion.
+The database-backed architecture introduces persistence for user preferences and newsletter history, while scheduled cron execution replaces webhook-triggered processing. The web interface is deployed as a new route (`/personifeed`) within the existing llmbox.pro Next.js application, eliminating the need for separate deployment infrastructure. The result is a scalable, cost-effective MVP that can be deployed in **2-3 weeks** and supports future growth and feature expansion.
 
 **Key Reuse Benefits:**
 - Battle-tested OpenAI and SendGrid integrations
 - Structured logging and error handling
-- Modern Next.js + TailwindCSS web infrastructure
+- Complete Next.js + TailwindCSS web infrastructure (shared deployment)
 - Retry logic with exponential backoff
 - Configuration management patterns
+- Single deployment pipeline for both services
 
 **Next Steps:**
 1. Refactor shared utilities into `supabase/functions/_shared/` directory (following Supabase best practices)
@@ -1544,11 +1558,11 @@ The database-backed architecture introduces persistence for user preferences and
 3. Update `config.toml` with function-specific configurations (JWT, import maps)
 4. Implement database schema and migrations
 5. Develop three Edge Functions (signup, cron, reply)
-6. Build landing page with signup form
+6. Create `/personifeed` route in existing Next.js app with signup form
 7. Move tests to `supabase/functions/tests/` with `-test` suffix
 8. Configure cron job and SendGrid Inbound Parse
 9. Test end-to-end flow
-10. Deploy to production
+10. Deploy to production (single deployment for web, separate for functions)
 
 **Architecture Compliance:**
 - ✅ Follow Supabase Edge Functions best practices (hyphenated names, `_shared` folder, co-located tests)
