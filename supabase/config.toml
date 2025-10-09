@@ -5,3 +5,20 @@
 # Required for webhooks from external services like SendGrid
 verify_jwt = false
 
+# Personifeed Functions
+
+[functions.personifeed-signup]
+# Allow public access for landing page signup form
+verify_jwt = false
+import_map = './import_map.json'
+
+[functions.personifeed-cron]
+# Protected - only Supabase can trigger this function
+verify_jwt = true
+import_map = './import_map.json'
+
+[functions.personifeed-reply]
+# Allow public access for SendGrid webhook
+verify_jwt = false
+import_map = './import_map.json'
+
