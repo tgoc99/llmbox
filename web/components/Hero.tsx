@@ -34,19 +34,26 @@ const Hero = (): JSX.Element => {
             Just send an email and get intelligent responses in seconds.
           </p>
 
+          {/* Free Tier Badge */}
+          <div className="inline-block mb-6 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+            <span className="text-green-800 font-semibold">
+              🎉 Start free! No credit card required
+            </span>
+          </div>
+
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <a
               href="#how-it-works"
               className="btn-primary w-full sm:w-auto"
             >
-              Get Started
+              Get Started Free
             </a>
             <a
-              href="#features"
+              href="/pricing"
               className="btn-secondary w-full sm:w-auto"
             >
-              Learn More
+              View Pricing
             </a>
           </div>
 
@@ -74,6 +81,12 @@ const Hero = (): JSX.Element => {
             </div>
             <p className="mt-4 text-sm text-subtle">
               Response delivered to your inbox in under 30 seconds ⚡
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              By using LLMBox, you agree to our{' '}
+              <a href="/terms" className="text-primary-600 hover:text-primary-700 underline">
+                Terms & Privacy Policy
+              </a>
             </p>
           </div>
         </div>

@@ -174,3 +174,73 @@ export const sendEmail = async (email: OutgoingEmail): Promise<void> => {
   }
 };
 
+/**
+ * Send notification email (without threading)
+ * Used for system emails like limit notifications
+ * @param params - Email parameters
+ */
+export const sendNotificationEmail = async (params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}): Promise<void> => {
+  // Validate required configuration
+  if (!config.sendgridApiKey) {
+    throw new Error('SENDGRID_API_KEY is not configured');
+  }
+  if (!config.serviceEmailAddress) {
+    throw new Error('SERVICE_EMAIL_ADDRESS is not configured');
+  }
+
+  // Construct message
+  const msg = {
+    to: params.to,
+    from: config.serviceEmailAddress,
+    subject: params.subject,
+    text: params.text,
+    html: params.html,
+    replyTo: params.replyTo || config.serviceEmailAddress,
+  };
+
+  // Log send started
+  logInfo('notification_email_send_started', {
+    to: params.to,
+    subject: params.subject,
+  });
+
+  try {
+    // Send email using SendGrid library
+    await sgMail.send(msg);
+
+    // Log success
+    logInfo('notification_email_send_completed', {
+      to: params.to,
+      subject: params.subject,
+    });
+  } catch (error: any) {
+    // Library provides structured error with response details
+    if (error.response) {
+      const statusCode = error.code || error.response?.statusCode;
+      const errorBody = error.response?.body;
+
+      logError('notification_email_send_failed', {
+        to: params.to,
+        subject: params.subject,
+        error: error.message,
+        statusCode,
+        errorBody,
+      });
+    } else {
+      // Network or other errors without response
+      logError('notification_email_send_failed', {
+        to: params.to,
+        subject: params.subject,
+        error: error.message || String(error),
+      });
+    }
+    throw error;
+  }
+};
+
