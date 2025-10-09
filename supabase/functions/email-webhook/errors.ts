@@ -5,7 +5,7 @@ import {
   getRateLimitErrorEmail,
   getTimeoutErrorEmail,
 } from './errorTemplates.ts';
-import type { ParsedEmail, OutgoingEmail } from './types.ts';
+import type { IncomingEmail as ParsedEmail, OutgoingEmail } from '../_shared/types.ts';
 
 /**
  * Serialize FormData to object for logging

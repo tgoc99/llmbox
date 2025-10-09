@@ -1,10 +1,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { parseIncomingEmail, ValidationError } from './emailParser.ts';
-import { formatOutgoingEmail, sendEmail } from './emailSender.ts';
+import { formatReplyEmail as formatOutgoingEmail, sendReplyEmail as sendEmail } from '../_shared/emailSender.ts';
 import { getGenericErrorEmail } from './errorTemplates.ts';
 import { logError, logInfo, logWarn } from './logger.ts';
-import { generateResponse } from './llmClient.ts';
+import { generateEmailResponse as generateResponse } from '../_shared/llmClient.ts';
 import { PerformanceTracker } from './performance.ts';
 import { handleOpenAIError, handleSendGridError } from './errors.ts';
 import {

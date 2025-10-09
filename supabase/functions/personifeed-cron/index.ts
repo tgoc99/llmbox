@@ -7,7 +7,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { logInfo, logError } from '../_shared/logger.ts';
 import { getAllActiveUsers, getUserCustomizations, createNewsletter } from './database.ts';
 import { generateNewsletterContent } from './newsletterGenerator.ts';
-import { sendNewsletter } from './emailSender.ts';
+import { sendNewsletterEmail as sendNewsletter } from '../_shared/emailSender.ts';
 
 /**
  * Process a single user: generate newsletter and send email
@@ -36,10 +36,7 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
     const newsletter = await createNewsletter(user.id, content, 'sent');
 
     // Send email
-    await sendNewsletter(
-      { ...user, active: true, created_at: new Date() },
-      content,
-    );
+    await sendNewsletter(user.id, user.email, content);
 
     logInfo('user_processed_successfully', {
       userId: user.id,

@@ -2,7 +2,7 @@
  * Email parser module for SendGrid webhook payloads
  */
 
-import type { IncomingEmail } from './types.ts';
+import type { IncomingEmail } from '../_shared/types.ts';
 
 /**
  * Custom validation error for missing or invalid email fields

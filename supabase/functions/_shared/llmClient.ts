@@ -1,13 +1,14 @@
 /**
- * OpenAI API client for generating LLM responses
+ * Shared OpenAI API client for generating LLM responses
  * Uses Responses API with optional web search capability
+ * Can be used for email replies, newsletter generation, and other LLM tasks
  */
 
 import OpenAI from 'npm:openai@6.2.0';
-import type { IncomingEmail, LLMResponse } from './types.ts';
 import { config } from './config.ts';
 import { withRetry } from './retryLogic.ts';
 import { logCritical, logError, logInfo, logWarn } from './logger.ts';
+import type { IncomingEmail, LLMResponse } from './types.ts';
 
 // Initialize OpenAI client
 let client: OpenAI | null = null;
@@ -26,7 +27,22 @@ const getClient = (): OpenAI => {
 };
 
 /**
+ * Options for generating LLM responses
+ */
+export interface LLMGenerationOptions {
+  /** Custom instructions/system prompt for the LLM */
+  instructions: string;
+  /** Input text/prompt for the LLM */
+  input: string;
+  /** Enable web search tool (default: from config) */
+  enableWebSearch?: boolean;
+  /** Context object for logging (e.g., messageId, userId, email) */
+  logContext?: Record<string, unknown>;
+}
+
+/**
  * Format email content into input for the Responses API
+ * Used by email-webhook for email replies
  */
 export const formatEmailInput = (email: IncomingEmail): string => {
   let input = `Respond to this email:\n\n`;
@@ -38,30 +54,34 @@ export const formatEmailInput = (email: IncomingEmail): string => {
 };
 
 /**
- * Generate LLM response for incoming email using Responses API
+ * Generate LLM response using OpenAI Responses API
+ * This is the core function used by both email-webhook and personifeed
  * @throws Error if OpenAI API fails after retries
  */
-export const generateResponse = async (email: IncomingEmail): Promise<LLMResponse> => {
+export const generateLLMResponse = async (
+  options: LLMGenerationOptions,
+): Promise<LLMResponse> => {
   const startTime = Date.now();
+  const { instructions, input, enableWebSearch, logContext = {} } = options;
+  const useWebSearch = enableWebSearch ?? config.enableWebSearch;
 
   try {
     const openai = getClient();
-    const input = formatEmailInput(email);
 
     // Build tools array - add web search if enabled
     const tools: Array<{ type: 'web_search_preview' }> = [];
-    if (config.enableWebSearch) {
+    if (useWebSearch) {
       tools.push({ type: 'web_search_preview' as const });
       logInfo('web_search_enabled', {
-        messageId: email.messageId,
+        ...logContext,
       });
     }
 
     // Log API call start
     logInfo('openai_api_called', {
-      messageId: email.messageId,
+      ...logContext,
       model: config.openaiModel,
-      webSearchEnabled: config.enableWebSearch,
+      webSearchEnabled: useWebSearch,
       inputLength: input.length,
     });
 
@@ -70,11 +90,8 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
       try {
         return await openai.responses.create({
           model: config.openaiModel,
-          instructions: `You are a helpful assistant that users access via email.
-            Respond professionally and concisely.
-            If you use web search, cite your sources.
-            If you feel the need to add a parting salutation to the text, sign off as LLMBox.`,
-          input: input,
+          instructions,
+          input,
           ...(tools.length > 0 && { tools }), // Only add tools if array is not empty
         });
       } catch (error) {
@@ -83,19 +100,19 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
           // For 401/403, log as CRITICAL (invalid API key)
           if (error.status === 401 || error.status === 403) {
             logCritical('openai_auth_error', {
-              messageId: email.messageId,
+              ...logContext,
               statusCode: error.status,
               message: error.message,
             });
           } else if (error.status === 429) {
             logWarn('openai_rate_limit', {
-              messageId: email.messageId,
+              ...logContext,
               statusCode: error.status,
               message: error.message,
             });
           } else {
             logError('openai_api_error', {
-              messageId: email.messageId,
+              ...logContext,
               statusCode: error.status,
               message: error.message,
               type: error.type,
@@ -114,13 +131,13 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     const completionTime = Date.now() - startTime;
 
     // Check if web search was used (tools_used may not be in response type yet)
-    const usedWebSearch = (response as { tools_used?: Array<{ type: string }> }).tools_used?.some((tool) =>
-      tool.type === 'web_search_preview' || tool.type === 'web_search'
+    const usedWebSearch = (response as { tools_used?: Array<{ type: string }> }).tools_used?.some(
+      (tool) => tool.type === 'web_search_preview' || tool.type === 'web_search',
     ) || false;
 
     // Log success
     logInfo('openai_api_response_received', {
-      messageId: email.messageId,
+      ...logContext,
       model,
       tokenCount,
       completionTimeMs: completionTime,
@@ -131,7 +148,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
     // Check for slow response (> 20 seconds)
     if (completionTime > 20000) {
       logInfo('slow_openai_response', {
-        messageId: email.messageId,
+        ...logContext,
         completionTimeMs: completionTime,
         threshold: 20000,
       });
@@ -148,7 +165,7 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
 
     // Log final error after retries
     logError('openai_api_failed', {
-      messageId: email.messageId,
+      ...logContext,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       completionTimeMs: completionTime,
@@ -158,3 +175,61 @@ export const generateResponse = async (email: IncomingEmail): Promise<LLMRespons
   }
 };
 
+/**
+ * Generate LLM response for incoming email using Responses API
+ * Convenience function for email-webhook
+ * @throws Error if OpenAI API fails after retries
+ */
+export const generateEmailResponse = async (email: IncomingEmail): Promise<LLMResponse> => {
+  const input = formatEmailInput(email);
+  const instructions = `You are a helpful assistant that users access via email.
+    Respond professionally and concisely.
+    If you use web search, cite your sources.
+    If you feel the need to add a parting salutation to the text, sign off as LLMBox.`;
+
+  return await generateLLMResponse({
+    instructions,
+    input,
+    logContext: { messageId: email.messageId },
+  });
+};
+
+/**
+ * Generate newsletter content using Responses API
+ * Convenience function for personifeed
+ * @throws Error if OpenAI API fails after retries
+ */
+export const generateNewsletterContent = async (
+  userId: string,
+  userEmail: string,
+  userContext: string,
+): Promise<LLMResponse> => {
+  const todayDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const instructions =
+    `You are creating a personalized daily newsletter. Use the user's preferences and any customization feedback to generate relevant, engaging content.
+
+Guidelines:
+- Keep the newsletter concise (500-1000 words)
+- Include today's date in the header
+- Format content with clear sections and headings
+- Be conversational and engaging
+- Prioritize the user's stated interests and preferences
+- If the user has provided feedback, incorporate their suggestions
+- Use markdown formatting for better readability
+- Use web search to find current, relevant information based on user interests`;
+
+  const input = `${userContext}Generate today's personalized newsletter for ${todayDate}.`;
+
+  return await generateLLMResponse({
+    instructions,
+    input,
+    enableWebSearch: true, // Always enable web search for newsletters
+    logContext: { userId, email: userEmail },
+  });
+};

@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { withRetry, DEFAULT_RETRY_CONFIG } from '../../supabase/functions/email-webhook/retryLogic.ts';
+import { withRetry, DEFAULT_RETRY_CONFIG } from '../../supabase/functions/_shared/retryLogic.ts';
 
 Deno.test('withRetry - succeeds on first attempt', async () => {
   let attempts = 0;

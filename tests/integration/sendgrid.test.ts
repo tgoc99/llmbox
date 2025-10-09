@@ -8,14 +8,14 @@
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
-  sendEmail,
-  formatOutgoingEmail
-} from '../../supabase/functions/email-webhook/emailSender.ts';
+  sendReplyEmail as sendEmail,
+  formatReplyEmail as formatOutgoingEmail,
+} from '../../supabase/functions/_shared/emailSender.ts';
 import type {
   OutgoingEmail,
   IncomingEmail,
   LLMResponse
-} from '../../supabase/functions/email-webhook/types.ts';
+} from '../../supabase/functions/_shared/types.ts';
 
 /**
  * Check if SendGrid credentials are available

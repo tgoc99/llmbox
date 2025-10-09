@@ -5,8 +5,8 @@
 import { assertEquals, assertRejects } from 'jsr:@std/assert';
 import { stub, restore } from 'jsr:@std/testing/mock';
 import sgMail from 'npm:@sendgrid/mail@8.1.6';
-import { formatOutgoingEmail, sendEmail } from '../../supabase/functions/email-webhook/emailSender.ts';
-import type { IncomingEmail, LLMResponse } from '../../supabase/functions/email-webhook/types.ts';
+import { formatReplyEmail as formatOutgoingEmail, sendReplyEmail as sendEmail } from '../../supabase/functions/_shared/emailSender.ts';
+import type { IncomingEmail, LLMResponse } from '../../supabase/functions/_shared/types.ts';
 
 Deno.test('formatOutgoingEmail - creates correct OutgoingEmail structure', () => {
   // Set environment variable for service email

@@ -8,7 +8,7 @@ import { logInfo, logError } from '../_shared/logger.ts';
 import { handleError, ValidationError } from '../_shared/errors.ts';
 import { parseReplyEmail } from './emailParser.ts';
 import { getUserById, getUserByEmail, createUser, addFeedback, addInitialCustomization } from './database.ts';
-import { sendConfirmationEmail } from '../personifeed-cron/emailSender.ts';
+import { sendConfirmationEmail } from '../_shared/emailSender.ts';
 
 /**
  * Validate feedback content length

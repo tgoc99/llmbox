@@ -9,7 +9,7 @@ import {
   getRateLimitErrorEmail,
   getTimeoutErrorEmail,
 } from '../../supabase/functions/email-webhook/errorTemplates.ts';
-import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
+import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
 
 const mockIncomingEmail: IncomingEmail = {
   from: 'user@example.com',
