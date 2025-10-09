@@ -15,7 +15,10 @@
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { generateEmailResponse as generateResponse } from '../../supabase/functions/_shared/llmClient.ts';
-import { sendReplyEmail as sendEmail, formatReplyEmail as formatOutgoingEmail } from '../../supabase/functions/_shared/emailSender.ts';
+import {
+  formatReplyEmail as formatOutgoingEmail,
+  sendReplyEmail as sendEmail,
+} from '../../supabase/functions/_shared/emailSender.ts';
 import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
 
 /**
@@ -27,8 +30,8 @@ const hasAllCredentials = (): boolean => {
   const serviceEmail = Deno.env.get('SERVICE_EMAIL_ADDRESS');
 
   return openaiKey !== undefined && openaiKey.length > 0 &&
-         sendgridKey !== undefined && sendgridKey.length > 0 &&
-         serviceEmail !== undefined && serviceEmail.length > 0;
+    sendgridKey !== undefined && sendgridKey.length > 0 &&
+    serviceEmail !== undefined && serviceEmail.length > 0;
 };
 
 /**
@@ -36,8 +39,8 @@ const hasAllCredentials = (): boolean => {
  */
 const getTestRecipient = (): string => {
   return Deno.env.get('TEST_RECIPIENT_EMAIL') ||
-         Deno.env.get('SERVICE_EMAIL_ADDRESS') ||
-         'test@example.com';
+    Deno.env.get('SERVICE_EMAIL_ADDRESS') ||
+    'test@example.com';
 };
 
 /**
@@ -69,7 +72,8 @@ Deno.test({
     // Arrange - Incoming email
     const incomingEmail = createIncomingEmail({
       subject: 'Question about pricing',
-      body: 'Hi, I\'m interested in your email assistant service. Can you tell me about your pricing plans?',
+      body:
+        "Hi, I'm interested in your email assistant service. Can you tell me about your pricing plans?",
       messageId: `<e2e-test-${Date.now()}@example.com>`,
     });
 
@@ -147,7 +151,8 @@ Deno.test({
     // Arrange - Technical support email
     const incomingEmail = createIncomingEmail({
       subject: 'API Integration Help',
-      body: 'I\'m trying to integrate your API into my Node.js application. Can you provide documentation and sample code?',
+      body:
+        "I'm trying to integrate your API into my Node.js application. Can you provide documentation and sample code?",
       messageId: `<tech-support-${Date.now()}@example.com>`,
     });
 
@@ -185,7 +190,8 @@ Deno.test({
     // Arrange - Customer complaint
     const incomingEmail = createIncomingEmail({
       subject: 'Service Issue',
-      body: 'I\'m very disappointed with the service. The system has been down for hours and I haven\'t received any updates. This is unacceptable!',
+      body:
+        "I'm very disappointed with the service. The system has been down for hours and I haven't received any updates. This is unacceptable!",
       messageId: `<complaint-${Date.now()}@example.com>`,
     });
 
@@ -207,8 +213,7 @@ Deno.test({
 
     // Check for empathetic tone
     const lowerContent = llmResponse.content.toLowerCase();
-    const hasEmpathy =
-      lowerContent.includes('sorry') ||
+    const hasEmpathy = lowerContent.includes('sorry') ||
       lowerContent.includes('apologize') ||
       lowerContent.includes('understand');
 
@@ -232,7 +237,8 @@ Deno.test({
     const threadId = `thread-${Date.now()}`;
     const incomingEmail = createIncomingEmail({
       subject: 'Re: Follow-up question',
-      body: 'Thanks for your previous response. I have a follow-up question about the implementation details.',
+      body:
+        'Thanks for your previous response. I have a follow-up question about the implementation details.',
       messageId: `<${threadId}-followup@example.com>`,
       inReplyTo: `<${threadId}-original@example.com>`,
       references: [
@@ -260,7 +266,7 @@ Deno.test({
     assertEquals(
       outgoingEmail.references.length,
       incomingEmail.references.length + 1,
-      'Should append to references'
+      'Should append to references',
     );
 
     console.log('✅ Threaded email workflow completed');
@@ -280,7 +286,8 @@ Deno.test({
     // Arrange - Email with special characters
     const incomingEmail = createIncomingEmail({
       subject: 'Question about pricing 💰',
-      body: 'Hi! 👋 I\'m interested in your service. What\'s the cost? Is it €100 or $100? Thanks! 😊',
+      body:
+        "Hi! 👋 I'm interested in your service. What's the cost? Is it €100 or $100? Thanks! 😊",
       messageId: `<special-${Date.now()}@example.com>`,
     });
 
@@ -355,10 +362,14 @@ Deno.test({
     console.log('✅ Performance benchmark completed');
     console.log('\n📊 Performance Metrics:');
     console.log(`   AI Generation:    ${aiTime}ms (${(aiTime / totalTime * 100).toFixed(1)}%)`);
-    console.log(`   Email Formatting: ${formatTime}ms (${(formatTime / totalTime * 100).toFixed(1)}%)`);
+    console.log(
+      `   Email Formatting: ${formatTime}ms (${(formatTime / totalTime * 100).toFixed(1)}%)`,
+    );
     console.log(`   Email Sending:    ${sendTime}ms (${(sendTime / totalTime * 100).toFixed(1)}%)`);
     console.log(`   Total Time:       ${totalTime}ms`);
-    console.log(`   Throughput:       ${(1000 / totalTime * 60).toFixed(1)} emails/minute (theoretical)`);
+    console.log(
+      `   Throughput:       ${(1000 / totalTime * 60).toFixed(1)} emails/minute (theoretical)`,
+    );
   },
 });
 
@@ -426,11 +437,11 @@ Technical Director`;
     assertEquals(error, null);
     assert(
       llmResponse.content.length > 200,
-      'Response to detailed email should be comprehensive'
+      'Response to detailed email should be comprehensive',
     );
     assert(
       llmResponse.tokenCount > 100,
-      'Should use significant tokens for detailed response'
+      'Should use significant tokens for detailed response',
     );
 
     console.log('✅ Long email workflow completed');
@@ -447,6 +458,7 @@ if (!hasAllCredentials()) {
   console.log('   - SENDGRID_API_KEY=your_sendgrid_key');
   console.log('   - SERVICE_EMAIL_ADDRESS=your_service_email@domain.com');
   console.log('   - TEST_RECIPIENT_EMAIL=test_recipient@domain.com (optional)');
-  console.log('   Then run: deno test tests/integration/end-to-end.test.ts --allow-all --allow-env\n');
+  console.log(
+    '   Then run: deno test tests/integration/end-to-end.test.ts --allow-all --allow-env\n',
+  );
 }
-

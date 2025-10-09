@@ -37,4 +37,3 @@ export const withCorsHeaders = (response: Response): Response => {
     headers,
   });
 };
-

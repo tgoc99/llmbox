@@ -121,4 +121,3 @@ export interface SignupResponse {
   message: string;
   userId?: string;
 }
-

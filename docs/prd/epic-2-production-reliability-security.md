@@ -1,18 +1,21 @@
 # Epic 2: Production Reliability & Security
 
-**Epic Goal**: Add robust error handling, email threading support, SendGrid webhook signature verification, comprehensive logging, and production-ready monitoring to make the service secure, reliable, and ready for real-world use.
+**Epic Goal**: Add robust error handling, email threading support, SendGrid webhook signature
+verification, comprehensive logging, and production-ready monitoring to make the service secure,
+reliable, and ready for real-world use.
 
 ## Story 2.1: SendGrid Webhook Signature Verification
 
-**As a** system administrator,
-**I want** SendGrid webhook requests to be cryptographically verified,
-**so that** only legitimate requests from SendGrid are processed and malicious requests are rejected.
+**As a** system administrator, **I want** SendGrid webhook requests to be cryptographically
+verified, **so that** only legitimate requests from SendGrid are processed and malicious requests
+are rejected.
 
 ### Acceptance Criteria
 
 1. Function extracts `X-Twilio-Email-Event-Webhook-Signature` header from incoming requests
 2. Function extracts `X-Twilio-Email-Event-Webhook-Timestamp` header from incoming requests
-3. Function retrieves SendGrid webhook verification key from environment variables (`SENDGRID_WEBHOOK_VERIFICATION_KEY`)
+3. Function retrieves SendGrid webhook verification key from environment variables
+   (`SENDGRID_WEBHOOK_VERIFICATION_KEY`)
 4. Function generates expected signature using HMAC-SHA256 with:
    - Key: verification key from SendGrid
    - Data: timestamp + request body
@@ -27,14 +30,14 @@
 
 ## Story 2.2: Email Threading Support
 
-**As a** user,
-**I want** my email conversations to be properly threaded,
-**so that** my email client groups the conversation and I can follow the context.
+**As a** user, **I want** my email conversations to be properly threaded, **so that** my email
+client groups the conversation and I can follow the context.
 
 ### Acceptance Criteria
 
 1. Function extracts `Message-ID` header from incoming email webhook payload
-2. Function extracts `In-Reply-To` header from incoming email (if present, indicates reply to previous message)
+2. Function extracts `In-Reply-To` header from incoming email (if present, indicates reply to
+   previous message)
 3. Function extracts `References` header from incoming email (full thread history)
 4. Response email includes:
    - `In-Reply-To` header: Set to original email's Message-ID
@@ -48,29 +51,32 @@
 
 ## Story 2.3: Enhanced Error Handling and User Communication
 
-**As a** user,
-**I want** clear error messages when something goes wrong,
-**so that** I understand what happened and can take appropriate action.
+**As a** user, **I want** clear error messages when something goes wrong, **so that** I understand
+what happened and can take appropriate action.
 
 ### Acceptance Criteria
 
-1. OpenAI API timeout (>30s): Send email to user with message "I'm taking longer than usual to respond. Please try again in a few minutes."
-2. OpenAI API rate limit error: Send email with "I'm experiencing high demand. Please try again in a few minutes."
-3. OpenAI API invalid API key: Log critical error, send generic error email to user, alert admin (log ERROR level)
+1. OpenAI API timeout (>30s): Send email to user with message "I'm taking longer than usual to
+   respond. Please try again in a few minutes."
+2. OpenAI API rate limit error: Send email with "I'm experiencing high demand. Please try again in a
+   few minutes."
+3. OpenAI API invalid API key: Log critical error, send generic error email to user, alert admin
+   (log ERROR level)
 4. SendGrid API quota exceeded: Log critical error, do not retry (prevents loop)
 5. SendGrid API invalid API key: Log critical error with detailed message
-6. Malformed email payload (missing required fields): Log warning with details, return 400 to SendGrid
+6. Malformed email payload (missing required fields): Log warning with details, return 400 to
+   SendGrid
 7. All error emails maintain proper email threading (In-Reply-To headers)
 8. Error emails are professionally worded and include service name
 9. Function never returns 5xx errors to SendGrid webhook (prevents retry storm)
-10. All errors logged with structured data: error type, error message, timestamp, context (sender, subject)
+10. All errors logged with structured data: error type, error message, timestamp, context (sender,
+    subject)
 11. Unit test: Each error type generates appropriate user email and log entry
 
 ## Story 2.4: Retry Logic and Idempotency
 
-**As a** system,
-**I want** resilient API call handling with retries,
-**so that** transient failures don't cause user-facing errors.
+**As a** system, **I want** resilient API call handling with retries, **so that** transient failures
+don't cause user-facing errors.
 
 ### Acceptance Criteria
 
@@ -82,15 +88,15 @@
 6. Each retry attempt logged with attempt number
 7. After all retries exhausted: Log final failure, send error email to user
 8. Function tracks processed Message-IDs to prevent duplicate processing (in-memory for MVP)
-9. If duplicate Message-ID received within 10 minutes: Return 200 OK but skip processing, log "Duplicate request ignored"
+9. If duplicate Message-ID received within 10 minutes: Return 200 OK but skip processing, log
+   "Duplicate request ignored"
 10. Unit test: Retry logic attempts correct number of times with correct delays
 11. Integration test: Transient API failure recovers on retry
 
 ## Story 2.5: Production Monitoring and Observability
 
-**As a** developer,
-**I want** comprehensive monitoring and structured logging,
-**so that** I can track system health, debug issues quickly, and identify performance bottlenecks.
+**As a** developer, **I want** comprehensive monitoring and structured logging, **so that** I can
+track system health, debug issues quickly, and identify performance bottlenecks.
 
 ### Acceptance Criteria
 

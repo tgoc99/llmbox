@@ -4,8 +4,8 @@
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { logInfo, logError } from '../_shared/logger.ts';
-import { getAllActiveUsers, getUserCustomizations, createNewsletter } from './database.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
+import { createNewsletter, getAllActiveUsers, getUserCustomizations } from './database.ts';
 import { generateNewsletterContent } from './newsletterGenerator.ts';
 import { sendNewsletterEmail as sendNewsletter } from '../_shared/emailSender.ts';
 
@@ -18,11 +18,11 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
     const customizations = await getUserCustomizations(user.id);
 
     if (customizations.length === 0) {
-    logError('no_customizations_found', {
-      userId: user.id,
-      email: user.email,
-      message: 'User has no customizations stored',
-    });
+      logError('no_customizations_found', {
+        userId: user.id,
+        email: user.email,
+        message: 'User has no customizations stored',
+      });
       return false;
     }
 
@@ -180,7 +180,6 @@ const handleCron = async (): Promise<Response> => {
 /**
  * Serve HTTP requests
  */
-serve(async (_req: Request): Promise<Response> => {
+serve((_req: Request): Promise<Response> => {
   return handleCron();
 });
-

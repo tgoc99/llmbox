@@ -2,11 +2,12 @@
 
 > Your personalized daily digest, delivered at 11am ET
 
-**Status:** MVP Complete - In Production
-**Production URL:** https://llmbox.pro/personifeed
-**Email Domain:** mail.llmbox.pro
+**Status:** MVP Complete - In Production **Production URL:** https://llmbox.pro/personifeed **Email
+Domain:** mail.llmbox.pro
 
-personi[feed] is a daily AI newsletter service that generates personalized content based on your interests. Sign up with just an email and a prompt—no password required. Each newsletter is sent from a unique dynamic address (`reply+{userId}@mail.llmbox.pro`) for efficient reply routing.
+personi[feed] is a daily AI newsletter service that generates personalized content based on your
+interests. Sign up with just an email and a prompt—no password required. Each newsletter is sent
+from a unique dynamic address (`reply+{userId}@mail.llmbox.pro`) for efficient reply routing.
 
 ## 🎯 Key Features
 
@@ -124,6 +125,7 @@ deno task deploy:personifeed:all
 ### 5. Configure Cron Job
 
 Set up daily cron trigger in Supabase Dashboard:
+
 - Schedule: `0 15 * * *` (11am ET = 3pm UTC)
 - Target: `personifeed-cron` function
 
@@ -154,24 +156,29 @@ deno task test:integration:personifeed
 ### Manual Testing
 
 **1. Test Signup Function**
+
 - Navigate to landing page: `https://[your-domain]/personifeed`
 - Enter valid email and prompt → Submit
 - Verify success message and check database: `SELECT * FROM users WHERE email = '...'`
 
 **2. Test Cron Job Manually**
+
 ```bash
 deno task trigger:cron
 ```
+
 - Check response for `"success": true`
 - Check email inbox for newsletter
 - Verify in database: `SELECT * FROM newsletters WHERE user_id = '...'`
 
 **3. Test Reply Function**
+
 - Reply to newsletter email with feedback
 - Check database: `SELECT * FROM customizations WHERE type = 'feedback'`
 - Verify confirmation email received
 
 **4. Test Complete User Journey**
+
 - Day 1: Sign up with test email
 - Day 2 @ 11am ET: Verify first newsletter received
 - Day 2: Reply with feedback → verify confirmation email
@@ -181,33 +188,33 @@ deno task trigger:cron
 
 ### users
 
-| Column      | Type      | Description                        |
-|-------------|-----------|------------------------------------|
-| id          | UUID      | Primary key                        |
-| email       | VARCHAR   | User email (unique)                |
-| created_at  | TIMESTAMP | Signup timestamp                   |
-| active      | BOOLEAN   | Newsletter subscription status     |
+| Column     | Type      | Description                    |
+| ---------- | --------- | ------------------------------ |
+| id         | UUID      | Primary key                    |
+| email      | VARCHAR   | User email (unique)            |
+| created_at | TIMESTAMP | Signup timestamp               |
+| active     | BOOLEAN   | Newsletter subscription status |
 
 ### customizations
 
-| Column      | Type      | Description                        |
-|-------------|-----------|------------------------------------|
-| id          | UUID      | Primary key                        |
-| user_id     | UUID      | Foreign key to users               |
-| content     | TEXT      | Prompt or feedback (max 2000 chars)|
-| type        | VARCHAR   | 'initial' or 'feedback'            |
-| created_at  | TIMESTAMP | Creation timestamp                 |
+| Column     | Type      | Description                         |
+| ---------- | --------- | ----------------------------------- |
+| id         | UUID      | Primary key                         |
+| user_id    | UUID      | Foreign key to users                |
+| content    | TEXT      | Prompt or feedback (max 2000 chars) |
+| type       | VARCHAR   | 'initial' or 'feedback'             |
+| created_at | TIMESTAMP | Creation timestamp                  |
 
 ### newsletters
 
-| Column      | Type      | Description                        |
-|-------------|-----------|------------------------------------|
-| id          | UUID      | Primary key                        |
-| user_id     | UUID      | Foreign key to users               |
-| content     | TEXT      | Generated newsletter content       |
-| sent_at     | TIMESTAMP | Delivery timestamp (null if failed)|
-| status      | VARCHAR   | 'pending', 'sent', or 'failed'     |
-| created_at  | TIMESTAMP | Generation timestamp               |
+| Column     | Type      | Description                         |
+| ---------- | --------- | ----------------------------------- |
+| id         | UUID      | Primary key                         |
+| user_id    | UUID      | Foreign key to users                |
+| content    | TEXT      | Generated newsletter content        |
+| sent_at    | TIMESTAMP | Delivery timestamp (null if failed) |
+| status     | VARCHAR   | 'pending', 'sent', or 'failed'      |
+| created_at | TIMESTAMP | Generation timestamp                |
 
 ## 🔄 User Journey
 
@@ -306,13 +313,13 @@ deno task help                      # Show all tasks
 
 For **100 users/day**:
 
-| Service       | Usage                  | Cost      |
-|---------------|------------------------|-----------|
-| OpenAI API    | ~3,000 requests/month  | ~$30/mo   |
-| SendGrid      | 3,000 emails/month     | Free      |
-| Supabase      | 500MB database         | Free      |
-| Vercel        | Static site            | Free      |
-| **Total**     |                        | **~$30/mo** |
+| Service    | Usage                 | Cost        |
+| ---------- | --------------------- | ----------- |
+| OpenAI API | ~3,000 requests/month | ~$30/mo     |
+| SendGrid   | 3,000 emails/month    | Free        |
+| Supabase   | 500MB database        | Free        |
+| Vercel     | Static site           | Free        |
+| **Total**  |                       | **~$30/mo** |
 
 ### Cost Optimization
 
@@ -376,11 +383,13 @@ Or use Supabase Dashboard → Edge Functions → Logs
 ## 📚 Documentation
 
 - **PRD**: `docs/personifeed-prd.md` - Product requirements, deployment guide, quick reference
-- **Architecture**: `docs/personifeed-architecture.md` - System design, technical details, dynamic reply addresses
+- **Architecture**: `docs/personifeed-architecture.md` - System design, technical details, dynamic
+  reply addresses
 
 ## 🗺️ Roadmap
 
 ### MVP ✅ Complete - In Production
+
 - ✅ Landing page with signup form at /personifeed
 - ✅ Database schema and migrations
 - ✅ Daily newsletter generation (11am ET via cron)
@@ -392,6 +401,7 @@ Or use Supabase Dashboard → Edge Functions → Logs
 - ✅ Structured logging and monitoring
 
 ### Post-MVP (Planned)
+
 - ⏳ Unsubscribe functionality
 - ⏳ Preference management page
 - ⏳ Webhook signature verification
@@ -411,6 +421,7 @@ Contributions welcome! Please read the contributing guidelines first.
 ## 🙏 Acknowledgments
 
 Built on the llmbox foundation, reusing:
+
 - Structured logging
 - Retry logic with exponential backoff
 - OpenAI integration
@@ -418,10 +429,10 @@ Built on the llmbox foundation, reusing:
 - Next.js web infrastructure
 
 Powered by:
+
 - [Supabase](https://supabase.com/) - Backend platform
 - [OpenAI](https://openai.com/) - LLM API
 - [SendGrid](https://sendgrid.com/) - Email delivery
 - [Vercel](https://vercel.com/) - Web hosting
 - [Next.js](https://nextjs.org/) - React framework
 - [TailwindCSS](https://tailwindcss.com/) - Styling
-

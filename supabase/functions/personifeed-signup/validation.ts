@@ -61,4 +61,3 @@ export const validatePrompt = (prompt: string): void => {
 export const sanitizePrompt = (prompt: string): string => {
   return prompt.trim().replace(/\s+/g, ' ');
 };
-

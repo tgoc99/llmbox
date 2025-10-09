@@ -1,22 +1,22 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import 'jsr:@supabase/functions-js@2/edge-runtime.d.ts';
 
 import { parseIncomingEmail, ValidationError } from './emailParser.ts';
-import { formatReplyEmail as formatOutgoingEmail, sendReplyEmail as sendEmail } from '../_shared/emailSender.ts';
+import {
+  formatReplyEmail as formatOutgoingEmail,
+  sendReplyEmail as sendEmail,
+} from '../_shared/emailSender.ts';
 import { getGenericErrorEmail } from './errorTemplates.ts';
 import { logError, logInfo, logWarn } from './logger.ts';
 import { generateEmailResponse as generateResponse } from '../_shared/llmClient.ts';
 import { PerformanceTracker } from './performance.ts';
 import { handleOpenAIError, handleSendGridError } from './errors.ts';
 import {
-  validateRequestMethod,
+  createGenericErrorResponse,
   createSuccessResponse,
   createValidationErrorResponse,
-  createGenericErrorResponse,
+  validateRequestMethod,
 } from './requestHandler.ts';
-import {
-  checkOperationThreshold,
-  checkTotalProcessingThreshold,
-} from './performanceMonitor.ts';
+import { checkOperationThreshold, checkTotalProcessingThreshold } from './performanceMonitor.ts';
 
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
@@ -91,7 +91,8 @@ Deno.serve(async (req: Request) => {
 
     // Format outgoing email (either LLM response or error)
     perf.start('email_send');
-    const outgoingEmail = errorEmail || (llmResponse ? formatOutgoingEmail(email, llmResponse) : getGenericErrorEmail(email));
+    const outgoingEmail = errorEmail ||
+      (llmResponse ? formatOutgoingEmail(email, llmResponse) : getGenericErrorEmail(email));
 
     try {
       await sendEmail(outgoingEmail);

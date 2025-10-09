@@ -1,11 +1,11 @@
-import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { withRetry, DEFAULT_RETRY_CONFIG } from '../../supabase/functions/_shared/retryLogic.ts';
+import { assert, assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { DEFAULT_RETRY_CONFIG, withRetry } from '../../supabase/functions/_shared/retryLogic.ts';
 
 Deno.test('withRetry - succeeds on first attempt', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
-    return 'success';
+    return Promise.resolve('success');
   };
 
   const result = await withRetry(fn);
@@ -16,12 +16,12 @@ Deno.test('withRetry - succeeds on first attempt', async () => {
 
 Deno.test('withRetry - succeeds on second attempt after retryable error', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
     if (attempts === 1) {
       throw new Response('Server Error', { status: 500 });
     }
-    return 'success';
+    return Promise.resolve('success');
   };
 
   const result = await withRetry(fn);
@@ -32,12 +32,12 @@ Deno.test('withRetry - succeeds on second attempt after retryable error', async 
 
 Deno.test('withRetry - retries on 429 rate limit', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
     if (attempts < 3) {
       throw new Response('Rate Limited', { status: 429 });
     }
-    return 'success';
+    return Promise.resolve('success');
   };
 
   const result = await withRetry(fn);
@@ -48,7 +48,7 @@ Deno.test('withRetry - retries on 429 rate limit', async () => {
 
 Deno.test('withRetry - does not retry on 401 auth error', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
     throw new Response('Unauthorized', { status: 401 });
   };
@@ -66,7 +66,7 @@ Deno.test('withRetry - does not retry on 401 auth error', async () => {
 
 Deno.test('withRetry - does not retry on 400 bad request', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
     throw new Response('Bad Request', { status: 400 });
   };
@@ -84,7 +84,7 @@ Deno.test('withRetry - does not retry on 400 bad request', async () => {
 
 Deno.test('withRetry - exhausts all retries and throws last error', async () => {
   let attempts = 0;
-  const fn = async () => {
+  const fn = () => {
     attempts++;
     throw new Response('Server Error', { status: 500 });
   };
@@ -99,4 +99,3 @@ Deno.test('withRetry - exhausts all retries and throws last error', async () => 
 
   assertEquals(attempts, DEFAULT_RETRY_CONFIG.maxAttempts);
 });
-

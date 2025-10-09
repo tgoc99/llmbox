@@ -130,4 +130,3 @@ export const parseIncomingEmail = (formData: FormData): IncomingEmail => {
     timestamp: new Date(),
   };
 };
-

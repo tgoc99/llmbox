@@ -72,7 +72,7 @@ export const handleOpenAIError = (
     stack: error instanceof Error ? error.stack : undefined,
     fullPayload,
   });
-  return getOpenAIErrorEmail(email, error as Error);
+  return getOpenAIErrorEmail(email);
 };
 
 /**
@@ -133,4 +133,3 @@ export const handleSendGridError = (
     fullPayload,
   });
 };
-

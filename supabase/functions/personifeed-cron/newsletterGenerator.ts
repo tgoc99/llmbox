@@ -3,10 +3,9 @@
  * Uses OpenAI Responses API with web search enabled
  */
 
-import { config } from '../_shared/config.ts';
-import type { User, Customization } from '../_shared/types.ts';
+import type { Customization, User } from '../_shared/types.ts';
 import { LLMError } from '../_shared/errors.ts';
-import { logInfo, logError } from '../_shared/logger.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
 import { generateNewsletterContent as generateNewsletterContentShared } from '../_shared/llmClient.ts';
 
 /**

@@ -60,4 +60,3 @@ Deno.test('formatEmailInput - handles empty body', () => {
   assertEquals(input.includes('From: user@example.com'), true);
   assertEquals(input.includes('Subject: Empty Email'), true);
 });
-

@@ -42,4 +42,3 @@ Deno.test('truncateBody - long email body preview', () => {
   assertEquals(truncated.endsWith('...'), true);
   assertEquals(body.startsWith(truncated.slice(0, -3)), true); // Verify it's a prefix
 });
-

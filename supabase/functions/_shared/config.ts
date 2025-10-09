@@ -93,4 +93,3 @@ export const config = {
     return getEnvVar('SUPABASE_SERVICE_ROLE_KEY', true);
   },
 };
-

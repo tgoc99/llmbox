@@ -3,9 +3,9 @@
  */
 
 import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { User, Customization } from '../_shared/types.ts';
+import type { Customization, User } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logInfo, logError } from '../_shared/logger.ts';
+import { logError, logInfo } from '../_shared/logger.ts';
 
 /**
  * Get user by ID
@@ -156,4 +156,3 @@ export const addInitialCustomization = async (
 
   return data as Customization;
 };
-

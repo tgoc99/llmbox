@@ -1,6 +1,7 @@
 # 📧 LLMBox - Email-to-AI Chat Service
 
-A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, and OpenAI. Users send emails and receive AI-generated responses with built-in web search capability.
+A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, and OpenAI. Users
+send emails and receive AI-generated responses with built-in web search capability.
 
 ---
 
@@ -9,6 +10,7 @@ A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, a
 This monorepo contains **two distinct services**:
 
 ### 1. **LLMBox** - Conversational AI via Email
+
 - 📧 Receive emails via SendGrid Inbound Parse webhook
 - 🤖 AI responses powered by OpenAI (GPT-4o-mini, GPT-4o)
 - 🌐 Built-in web search - AI can fetch real-time information
@@ -16,6 +18,7 @@ This monorepo contains **two distinct services**:
 - ⚡ Stateless, webhook-triggered processing
 
 ### 2. **personi[feed]** - AI-Powered Daily Newsletter
+
 - 📬 Personalized daily newsletters at 11am ET
 - 🗓️ Database-backed user preferences and customization
 - 💬 Email-based feedback for continuous personalization
@@ -66,6 +69,7 @@ deno task logs
 ### External Setup (Required)
 
 #### 1. SendGrid
+
 1. Get API key: [SendGrid Dashboard](https://app.sendgrid.com) → Settings → API Keys
 2. Verify sender domain: Settings → Sender Authentication
 3. Configure Inbound Parse:
@@ -74,12 +78,15 @@ deno task logs
    - Webhook URL: `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
 
 #### 2. OpenAI
+
 1. Get API key: [OpenAI Platform](https://platform.openai.com) → API Keys
 2. Add billing method (required)
 3. Choose model: `gpt-4o-mini` (recommended, faster, cheaper) or `gpt-4o`
 
 #### 3. DNS Configuration
+
 Add MX record to your domain:
+
 ```
 Type: MX
 Host: email.yourdomain.com
@@ -117,11 +124,13 @@ llmbox/
 ## 🎯 Current Status
 
 **Supabase Project:**
+
 - **ID:** nopocimtfthppwssohty
 - **Region:** us-east-2
 - **Endpoint:** `https://nopocimtfthppwssohty.supabase.co/functions/v1/email-webhook`
 
 **Development:**
+
 - ✅ Epic 1 Complete - Core email-LLM pipeline with web search
 - ✅ Comprehensive tests (unit + integration)
 - ✅ Next.js landing page
@@ -159,14 +168,14 @@ deno task secrets:set:key KEY=value  # Set a secret
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `SENDGRID_API_KEY` | Yes | - | SendGrid API key |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
-| `SERVICE_EMAIL_ADDRESS` | Yes | - | Verified sender email |
-| `OPENAI_MODEL` | No | `gpt-4o-mini` | gpt-4o-mini or gpt-4o |
-| `LOG_LEVEL` | No | `INFO` | DEBUG, INFO, WARN, ERROR, CRITICAL |
-| `ENABLE_WEB_SEARCH` | No | `true` | Enable AI web search |
+| Variable                | Required | Default       | Description                        |
+| ----------------------- | -------- | ------------- | ---------------------------------- |
+| `SENDGRID_API_KEY`      | Yes      | -             | SendGrid API key                   |
+| `OPENAI_API_KEY`        | Yes      | -             | OpenAI API key                     |
+| `SERVICE_EMAIL_ADDRESS` | Yes      | -             | Verified sender email              |
+| `OPENAI_MODEL`          | No       | `gpt-4o-mini` | gpt-4o-mini or gpt-4o              |
+| `LOG_LEVEL`             | No       | `INFO`        | DEBUG, INFO, WARN, ERROR, CRITICAL |
+| `ENABLE_WEB_SEARCH`     | No       | `true`        | Enable AI web search               |
 
 ### Testing
 
@@ -185,12 +194,12 @@ See [tests/integration/README.md](tests/integration/README.md) for integration t
 
 ## 🔍 Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **No email received** | Check Supabase logs, verify API keys, confirm sender domain verified |
+| Issue                      | Solution                                                                   |
+| -------------------------- | -------------------------------------------------------------------------- |
+| **No email received**      | Check Supabase logs, verify API keys, confirm sender domain verified       |
 | **Webhook not triggering** | Verify MX record, check DNS propagation (24-48 hours), confirm webhook URL |
-| **OpenAI errors** | Verify API key, check billing/usage limits, review logs |
-| **Deployment fails** | Verify project ID, check deployment permissions, review logs |
+| **OpenAI errors**          | Verify API key, check billing/usage limits, review logs                    |
+| **Deployment fails**       | Verify project ID, check deployment permissions, review logs               |
 
 ### Viewing Logs
 
@@ -207,20 +216,79 @@ Or: Supabase Dashboard → Project → Edge Functions → email-webhook → Logs
 ### Monitoring
 
 **Structured Logging:**
+
 - All logs in JSON format with timestamp, level, event, context
 - Levels: DEBUG, INFO, WARN, ERROR, CRITICAL
 - Each email tracked with correlation ID (`messageId`)
 - Performance warnings for slow operations
 
 **Key Events:**
-- `webhook_received`, `email_parsed`, `openai_response_received`, `sendgrid_send_completed`, `processing_completed`
+
+- `webhook_received`, `email_parsed`, `openai_response_received`, `sendgrid_send_completed`,
+  `processing_completed`
 - Filter by `messageId` in Supabase logs to trace specific emails
 
 **Performance Targets:**
+
 - Webhook parsing: < 2s
 - LLM API call: < 20s
 - Email sending: < 5s
 - Total: < 30s
+
+## 🧪 Testing
+
+Comprehensive test suite with 175 tests covering unit, contract, integration, and E2E scenarios.
+
+```bash
+# Fast tests (unit + contract) - run constantly
+deno task test              # 175 tests in ~7s
+deno task test:unit:watch   # Watch mode for development
+
+# Before committing
+deno task check             # Format, lint, type-check, tests
+
+# Before deploying (includes integration tests, costs $)
+deno task test:pre-deploy
+
+# Full suite (expensive!)
+deno task test:all
+```
+
+See [tests/README.md](tests/README.md) for comprehensive testing guide.
+
+## 🔄 CI/CD
+
+**GitHub Actions:**
+
+- ✅ Automated testing on PRs and pushes
+- ✅ Integration tests on main branch
+- ✅ Automated deployment to Supabase on merge to main
+
+**Git Hooks (Husky):**
+
+- ✅ Pre-commit: Format, lint, type-check, unit & contract tests (~7s)
+- ✅ Pre-push: Full check task
+
+**Local Setup:**
+
+```bash
+# Install Git hooks (run once after cloning)
+./.husky/install.sh
+```
+
+**GitHub Setup:**
+
+```bash
+# Quick: Add secrets from .env.local using GitHub CLI
+gh auth login
+cat .env.local | grep -E "OPENAI_API_KEY|SENDGRID_API_KEY|SERVICE_EMAIL_ADDRESS|SUPABASE_URL|SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY" | while IFS='=' read -r key value; do echo "$value" | gh secret set "$key"; done
+
+# Add deployment secrets
+gh secret set SUPABASE_ACCESS_TOKEN < <(cat ~/.supabase/access-token)
+echo "YOUR_PROJECT_REF" | gh secret set SUPABASE_PROJECT_ID
+```
+
+See [docs/ci-cd-setup.md](docs/ci-cd-setup.md) for full documentation.
 
 ## 🎨 Web Landing Page
 
@@ -236,7 +304,8 @@ deno task web:dev
 
 **Deployment:** Deploy to Vercel in 5 minutes. Set root directory to `web`.
 
-**Full Guide:** See [WEB-PROJECT-SUMMARY.md](WEB-PROJECT-SUMMARY.md) for complete web app documentation.
+**Full Guide:** See [WEB-PROJECT-SUMMARY.md](WEB-PROJECT-SUMMARY.md) for complete web app
+documentation.
 
 ## 📚 Documentation
 
@@ -250,6 +319,7 @@ deno task web:dev
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Runtime:** Deno + TypeScript
 - **Infrastructure:** Supabase Edge Functions (serverless)
 - **Email:** SendGrid (Inbound Parse + Send API)
@@ -258,15 +328,18 @@ deno task web:dev
 - **Testing:** Deno test framework
 
 ### Key Principles
+
 - **Stateless:** No database (MVP), email threading via headers
 - **Serverless:** Auto-scaling, pay-per-use
-- **Error Handling:** Comprehensive try-catch, exponential backoff retries, user-friendly error emails
+- **Error Handling:** Comprehensive try-catch, exponential backoff retries, user-friendly error
+  emails
 - **Logging:** Structured JSON logs with correlation IDs
 - **Security:** No hardcoded secrets, input validation, webhook verification (planned)
 
 ## 🚦 Development Roadmap
 
 ### Epic 1: Foundation & Core Pipeline ✅ Complete
+
 - ✅ Project setup and infrastructure
 - ✅ SendGrid inbound/outbound integration
 - ✅ OpenAI integration with web search
@@ -275,6 +348,7 @@ deno task web:dev
 - ✅ Next.js landing page
 
 ### Epic 2: Production Enhancements ⏳ Planned
+
 - ☐ Webhook signature verification
 - ☐ Rate limiting and throttling
 - ☐ Enhanced monitoring and alerting
@@ -284,6 +358,7 @@ deno task web:dev
 ## 🤝 Contributing
 
 ### Coding Standards
+
 - TypeScript strict mode, explicit return types
 - Deno fmt (lineWidth: 100, singleQuote: true)
 - Never use `console.log` - use structured logger
@@ -292,6 +367,7 @@ deno task web:dev
 See [.cursorrules](.cursorrules) for complete standards.
 
 ### Before Committing
+
 ```bash
 deno task check:all  # Runs fmt, lint, type-check, and tests
 ```

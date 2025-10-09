@@ -27,12 +27,10 @@ const ensureAngleBrackets = (messageId: string): string => {
 /**
  * Get error email for OpenAI API failures
  * @param originalEmail - The original incoming email
- * @param error - The error that occurred
  * @returns Formatted error email
  */
 export const getOpenAIErrorEmail = (
   originalEmail: IncomingEmail,
-  error: Error,
 ): OutgoingEmail => {
   const subject = originalEmail.subject.startsWith('Re: ')
     ? originalEmail.subject
@@ -163,4 +161,3 @@ Email Assistant Service`;
     references,
   };
 };
-

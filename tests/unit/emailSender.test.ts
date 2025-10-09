@@ -2,10 +2,13 @@
  * Unit tests for email sender module
  */
 
-import { assertEquals, assertRejects } from 'jsr:@std/assert';
-import { stub, restore } from 'jsr:@std/testing/mock';
+import { assertEquals, assertRejects } from 'jsr:@std/assert@1';
+import { stub } from 'jsr:@std/testing@1/mock';
 import sgMail from 'npm:@sendgrid/mail@8.1.6';
-import { formatReplyEmail as formatOutgoingEmail, sendReplyEmail as sendEmail } from '../../supabase/functions/_shared/emailSender.ts';
+import {
+  formatReplyEmail as formatOutgoingEmail,
+  sendReplyEmail as sendEmail,
+} from '../../supabase/functions/_shared/emailSender.ts';
 import type { IncomingEmail, LLMResponse } from '../../supabase/functions/_shared/types.ts';
 
 Deno.test('formatOutgoingEmail - creates correct OutgoingEmail structure', () => {
@@ -157,7 +160,11 @@ Deno.test('formatOutgoingEmail - References array includes original message ID',
 
   const result = formatOutgoingEmail(incomingEmail, llmResponse);
 
-  assertEquals(result.references, ['<msg1@example.com>', '<msg2@example.com>', '<msg3@example.com>']);
+  assertEquals(result.references, [
+    '<msg1@example.com>',
+    '<msg2@example.com>',
+    '<msg3@example.com>',
+  ]);
 });
 
 Deno.test('formatOutgoingEmail - ensures message IDs have angle brackets', () => {
@@ -182,7 +189,11 @@ Deno.test('formatOutgoingEmail - ensures message IDs have angle brackets', () =>
   const result = formatOutgoingEmail(incomingEmail, llmResponse);
 
   // All message IDs should have angle brackets
-  assertEquals(result.references, ['<ref1@example.com>', '<ref2@example.com>', '<msg-without-brackets@example.com>']);
+  assertEquals(result.references, [
+    '<ref1@example.com>',
+    '<ref2@example.com>',
+    '<msg-without-brackets@example.com>',
+  ]);
 });
 
 Deno.test('formatOutgoingEmail - filters out empty references', () => {
@@ -283,11 +294,11 @@ Deno.test('sendEmail - creates correct message structure', async () => {
   };
 
   // Mock sgMail.send to capture the message
-  let capturedMsg: any;
+  let capturedMsg: unknown;
   const sendStub = stub(
     sgMail,
     'send',
-    (msg: any) => {
+    (msg: unknown) => {
       capturedMsg = msg;
       return Promise.resolve([
         {
@@ -296,7 +307,7 @@ Deno.test('sendEmail - creates correct message structure', async () => {
           headers: { 'x-message-id': 'sg-test-message-id' },
         },
         {},
-      ] as any);
+      ]);
     },
   );
 
@@ -304,12 +315,14 @@ Deno.test('sendEmail - creates correct message structure', async () => {
     await sendEmail(outgoingEmail);
 
     // Verify message structure
-    assertEquals(capturedMsg.to, 'user@example.com');
-    assertEquals(capturedMsg.from, 'assistant@mydomain.com');
-    assertEquals(capturedMsg.subject, 'Re: Test');
-    assertEquals(capturedMsg.text, 'Test response body');
-    assertEquals(capturedMsg.headers['In-Reply-To'], '<original@example.com>');
-    assertEquals(capturedMsg.headers['References'], '<msg1@example.com> <original@example.com>');
+    const msg = capturedMsg as Record<string, unknown>;
+    assertEquals(msg.to, 'user@example.com');
+    assertEquals(msg.from, 'assistant@mydomain.com');
+    assertEquals(msg.subject, 'Re: Test');
+    assertEquals(msg.text, 'Test response body');
+    const headers = msg.headers as Record<string, string>;
+    assertEquals(headers['In-Reply-To'], '<original@example.com>');
+    assertEquals(headers['References'], '<msg1@example.com> <original@example.com>');
   } finally {
     sendStub.restore();
   }
@@ -334,7 +347,10 @@ Deno.test('sendEmail - handles 401 auth error', async () => {
     sgMail,
     'send',
     () => {
-      const error: any = new Error('Unauthorized');
+      const error = new Error('Unauthorized') as Error & {
+        code: number;
+        response: { statusCode: number; body: { errors: Array<{ message: string }> } };
+      };
       error.code = 401;
       error.response = {
         statusCode: 401,
@@ -374,7 +390,10 @@ Deno.test('sendEmail - handles 400 bad request error', async () => {
     sgMail,
     'send',
     () => {
-      const error: any = new Error('Bad Request: Invalid email format');
+      const error = new Error('Bad Request: Invalid email format') as Error & {
+        code: number;
+        response: { statusCode: number; body: { errors: Array<{ message: string }> } };
+      };
       error.code = 400;
       error.response = {
         statusCode: 400,
@@ -394,4 +413,3 @@ Deno.test('sendEmail - handles 400 bad request error', async () => {
     sendStub.restore();
   }
 });
-

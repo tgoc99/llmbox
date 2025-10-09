@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run Deno check task before committing
+echo "🔍 Running pre-commit checks..."
+
+# Auto-format
+echo "📝 Auto-formatting code..."
+deno fmt
+
+# Lint
+echo "🔎 Linting code..."
+deno lint || {
+  echo "❌ Linting failed. Fix the issues above."
+  exit 1
+}
+
+# Type check
+echo "🔧 Type checking..."
+deno task type-check || {
+  echo "❌ Type checking failed. Fix the type errors above."
+  exit 1
+}
+
+# Unit tests
+echo "🧪 Running unit tests..."
+deno task test:unit || {
+  echo "❌ Unit tests failed. Fix the failing tests above."
+  exit 1
+}
+
+# Contract tests
+echo "📋 Running contract tests..."
+deno task test:contract || {
+  echo "❌ Contract tests failed. Fix the failing tests above."
+  exit 1
+}
+
+echo "✅ All pre-commit checks passed!"
+
