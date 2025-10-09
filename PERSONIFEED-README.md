@@ -2,7 +2,11 @@
 
 > Your personalized daily digest, delivered at 11am ET
 
-personi[feed] is a daily AI newsletter service that generates personalized content based on your interests. Sign up with just an email and a prompt—no password required.
+**Status:** MVP Complete - In Production
+**Production URL:** https://llmbox.pro/personifeed
+**Email Domain:** mail.llmbox.pro
+
+personi[feed] is a daily AI newsletter service that generates personalized content based on your interests. Sign up with just an email and a prompt—no password required. Each newsletter is sent from a unique dynamic address (`reply+{userId}@mail.llmbox.pro`) for efficient reply routing.
 
 ## 🎯 Key Features
 
@@ -10,6 +14,7 @@ personi[feed] is a daily AI newsletter service that generates personalized conte
 - **Zero Friction**: No password, no login, no app—just email
 - **Conversational**: Reply to any newsletter to refine future content
 - **Daily Consistency**: Arrives every day at 11am ET
+- **Dynamic Reply Addresses**: Each user gets unique reply address for efficient routing
 
 ## 🏗️ Architecture
 
@@ -27,39 +32,37 @@ Built on the llmbox foundation with:
 ```
 llmbox/
 ├── supabase/
+│   ├── import_map.json                 # Top-level imports (Supabase standard)
+│   ├── config.toml                     # Function configurations
 │   ├── functions/
-│   │   ├── _shared/                    # Shared utilities
-│   │   │   ├── logger.ts
-│   │   │   ├── retryLogic.ts
-│   │   │   ├── config.ts
-│   │   │   ├── errors.ts
-│   │   │   ├── types.ts
-│   │   │   ├── cors.ts
-│   │   │   └── supabaseClient.ts
+│   │   ├── _shared/                    # Shared utilities (Supabase best practice)
+│   │   │   ├── config.ts               # Environment variable access
+│   │   │   ├── cors.ts                 # CORS headers
+│   │   │   ├── emailSender.ts          # SendGrid integration (dynamic addresses)
+│   │   │   ├── errors.ts               # Custom error classes
+│   │   │   ├── llmClient.ts            # OpenAI integration
+│   │   │   ├── logger.ts               # Structured logging
+│   │   │   ├── retryLogic.ts           # Exponential backoff
+│   │   │   ├── supabaseClient.ts       # Supabase helpers
+│   │   │   └── types.ts                # Shared TypeScript types
 │   │   ├── personifeed-signup/         # Signup handler
 │   │   │   ├── index.ts
 │   │   │   ├── database.ts
-│   │   │   ├── validation.ts
-│   │   │   └── types.ts
+│   │   │   └── validation.ts
 │   │   ├── personifeed-cron/           # Daily newsletter generator
 │   │   │   ├── index.ts
 │   │   │   ├── database.ts
-│   │   │   ├── newsletterGenerator.ts
-│   │   │   ├── emailSender.ts
-│   │   │   └── types.ts
+│   │   │   └── newsletterGenerator.ts
 │   │   ├── personifeed-reply/          # Reply handler
 │   │   │   ├── index.ts
 │   │   │   ├── database.ts
-│   │   │   ├── emailParser.ts
-│   │   │   └── types.ts
-│   │   ├── tests/                      # Function tests
-│   │   │   ├── personifeed-signup-test.ts
-│   │   │   ├── personifeed-cron-test.ts
-│   │   │   └── personifeed-reply-test.ts
-│   │   └── import_map.json             # Top-level imports
-│   ├── migrations/
-│   │   └── 20251009000000_personifeed_schema.sql
-│   └── config.toml
+│   │   │   └── emailParser.ts
+│   │   └── tests/                      # Function tests
+│   │       ├── personifeed-signup-test.ts
+│   │       ├── personifeed-cron-test.ts
+│   │       └── personifeed-reply-test.ts
+│   └── migrations/
+│       └── 20251009000000_personifeed_schema.sql
 ├── web/
 │   └── app/
 │       └── personifeed/
@@ -70,9 +73,8 @@ llmbox/
 │       ├── personifeed-cron.test.ts
 │       └── personifeed-reply.test.ts
 ├── docs/
-│   ├── personifeed-prd.md              # Product requirements
-│   ├── personifeed-architecture.md     # System architecture
-│   └── personifeed-deployment.md       # Deployment guide
+│   ├── personifeed-prd.md              # Product requirements & deployment
+│   └── personifeed-architecture.md     # System architecture & technical details
 └── PERSONIFEED-README.md               # This file
 ```
 
@@ -109,7 +111,7 @@ deno task db:push
 # Set required environment variables
 deno task secrets:set:key OPENAI_API_KEY=sk-...
 deno task secrets:set:key SENDGRID_API_KEY=SG...
-deno task secrets:set:key PERSONIFEED_EMAIL_DOMAIN=personifeed.llmbox.pro
+deno task secrets:set:key PERSONIFEED_EMAIL_DOMAIN=mail.llmbox.pro
 ```
 
 ### 4. Deploy Functions
@@ -373,25 +375,30 @@ Or use Supabase Dashboard → Edge Functions → Logs
 
 ## 📚 Documentation
 
-- **PRD**: `docs/personifeed-prd.md` - Product requirements
-- **Architecture**: `docs/personifeed-architecture.md` - System design
-- **Deployment**: `docs/personifeed-deployment.md` - Setup guide
+- **PRD**: `docs/personifeed-prd.md` - Product requirements, deployment guide, quick reference
+- **Architecture**: `docs/personifeed-architecture.md` - System design, technical details, dynamic reply addresses
 
 ## 🗺️ Roadmap
 
-### MVP (Complete)
-- ✅ Landing page with signup form
+### MVP ✅ Complete - In Production
+- ✅ Landing page with signup form at /personifeed
 - ✅ Database schema and migrations
-- ✅ Daily newsletter generation
+- ✅ Daily newsletter generation (11am ET via cron)
 - ✅ Email-based customization via replies
-- ✅ Comprehensive testing
+- ✅ Dynamic reply addresses (reply+{userId}@domain)
+- ✅ Comprehensive testing (unit + integration)
+- ✅ Deployed to production (Supabase + Vercel)
+- ✅ SendGrid configured with wildcard inbound parse
+- ✅ Structured logging and monitoring
 
-### Post-MVP
+### Post-MVP (Planned)
 - ⏳ Unsubscribe functionality
 - ⏳ Preference management page
 - ⏳ Webhook signature verification
-- ⏳ Newsletter analytics
+- ⏳ Newsletter analytics dashboard
 - ⏳ Multiple delivery times
+- ⏳ HTML email templates
+- ⏳ Newsletter archives
 
 ## 📄 License
 
