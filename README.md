@@ -2,7 +2,31 @@
 
 A serverless email-to-AI service powered by Supabase Edge Functions, SendGrid, and OpenAI. Users send emails and receive AI-generated responses with built-in web search capability.
 
-## ✨ Features
+---
+
+## 🎯 Two Services in One Repository
+
+This monorepo contains **two distinct services**:
+
+### 1. **LLMBox** - Conversational AI via Email
+- 📧 Receive emails via SendGrid Inbound Parse webhook
+- 🤖 AI responses powered by OpenAI (GPT-4o-mini, GPT-4o)
+- 🌐 Built-in web search - AI can fetch real-time information
+- 📤 Automatic email replies with threading support
+- ⚡ Stateless, webhook-triggered processing
+
+### 2. **personi[feed]** - AI-Powered Daily Newsletter
+- 📬 Personalized daily newsletters at 11am ET
+- 🗓️ Database-backed user preferences and customization
+- 💬 Email-based feedback for continuous personalization
+- ⚡ Cron-scheduled newsletter generation
+- 🎨 Dedicated landing page at `/personifeed`
+
+📖 **See [PERSONIFEED-README.md](PERSONIFEED-README.md) for full personi[feed] documentation**
+
+---
+
+## ✨ Features (LLMBox)
 
 - 📧 Receive emails via SendGrid Inbound Parse webhook
 - 🤖 AI responses powered by OpenAI (GPT-4o-mini, GPT-4o)
