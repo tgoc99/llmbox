@@ -14,9 +14,9 @@
  */
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { generateResponse } from '../../supabase/functions/email-webhook/llmClient.ts';
-import { sendEmail, formatOutgoingEmail } from '../../supabase/functions/email-webhook/emailSender.ts';
-import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
+import { generateEmailResponse as generateResponse } from '../../supabase/functions/_shared/llmClient.ts';
+import { sendReplyEmail as sendEmail, formatReplyEmail as formatOutgoingEmail } from '../../supabase/functions/_shared/emailSender.ts';
+import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
 
 /**
  * Check if all required credentials are available

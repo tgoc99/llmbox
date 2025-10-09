@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { formatEmailInput } from '../../supabase/functions/email-webhook/llmClient.ts';
-import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
+import { formatEmailInput } from '../../supabase/functions/_shared/llmClient.ts';
+import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
 
 Deno.test('formatEmailInput - creates correct format with email data', () => {
   const email: IncomingEmail = {

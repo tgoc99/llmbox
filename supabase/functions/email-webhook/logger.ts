@@ -3,7 +3,7 @@
  * All logs are formatted as JSON with timestamp, level, event, and context
  */
 
-import { config } from './config.ts';
+import { config } from '../_shared/config.ts';
 
 /**
  * Log levels in order of severity
@@ -117,7 +117,7 @@ export const truncateBody = (body: string): string => {
  * Convenience logging functions for specific events
  */
 
-import type { IncomingEmail, LLMResponse, OutgoingEmail } from './types.ts';
+import type { IncomingEmail, LLMResponse, OutgoingEmail } from '../_shared/types.ts';
 
 /**
  * Log webhook received event

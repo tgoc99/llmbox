@@ -25,6 +25,20 @@ export interface IncomingEmail {
 }
 
 /**
+ * SendGrid webhook payload structure
+ * Note: SendGrid sends multipart/form-data with these fields
+ */
+export interface SendGridWebhookPayload {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  headers: string;
+  html?: string;
+  attachments?: string;
+}
+
+/**
  * Outgoing email to be sent via SendGrid
  */
 export interface OutgoingEmail {

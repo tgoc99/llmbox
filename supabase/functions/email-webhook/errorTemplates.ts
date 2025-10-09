@@ -2,8 +2,8 @@
  * Error email templates for user-facing error messages
  */
 
-import { config } from './config.ts';
-import type { IncomingEmail, OutgoingEmail } from './types.ts';
+import { config } from '../_shared/config.ts';
+import type { IncomingEmail, OutgoingEmail } from '../_shared/types.ts';
 
 /**
  * Ensure message ID is properly formatted with angle brackets

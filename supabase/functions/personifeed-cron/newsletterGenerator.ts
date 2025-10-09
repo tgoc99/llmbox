@@ -1,27 +1,13 @@
 /**
- * Newsletter generation logic using OpenAI API
+ * Newsletter generation logic using shared LLM client
+ * Uses OpenAI Responses API with web search enabled
  */
 
-import OpenAI from 'npm:openai@6.2.0';
 import { config } from '../_shared/config.ts';
 import type { User, Customization } from '../_shared/types.ts';
 import { LLMError } from '../_shared/errors.ts';
 import { logInfo, logError } from '../_shared/logger.ts';
-import { withRetry } from '../_shared/retryLogic.ts';
-
-/**
- * Get OpenAI client instance
- */
-let openaiClient: OpenAI | null = null;
-
-const getOpenAIClient = (): OpenAI => {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: config.openaiApiKey,
-    });
-  }
-  return openaiClient;
-};
+import { generateNewsletterContent as generateNewsletterContentShared } from '../_shared/llmClient.ts';
 
 /**
  * Format customizations into context for LLM
@@ -49,6 +35,7 @@ const formatCustomizationsContext = (customizations: Customization[]): string =>
 
 /**
  * Generate newsletter content for a user
+ * Uses shared LLM client with Responses API and web search
  */
 export const generateNewsletterContent = async (
   user: User,
@@ -57,57 +44,21 @@ export const generateNewsletterContent = async (
   const startTime = Date.now();
 
   try {
-    const openai = getOpenAIClient();
-
-    // System prompt for newsletter generation
-    const systemPrompt = `You are creating a personalized daily newsletter. Use the user's preferences and any customization feedback to generate relevant, engaging content.
-
-Guidelines:
-- Keep the newsletter concise (500-1000 words)
-- Include today's date in the header
-- Format content with clear sections and headings
-- Be conversational and engaging
-- Prioritize the user's stated interests and preferences
-- If the user has provided feedback, incorporate their suggestions
-- Use markdown formatting for better readability`;
-
-    // User context from customizations
+    // Format user context from customizations
     const userContext = formatCustomizationsContext(customizations);
-    const todayDate = new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
 
-    const userPrompt = `${userContext}Generate today's personalized newsletter for ${todayDate}.`;
-
-    logInfo('openai_call_started', {
+    logInfo('newsletter_generation_started', {
       userId: user.id,
       email: user.email,
       customizationsCount: customizations.length,
     });
 
-    // Call OpenAI with retry logic
-    const response = await withRetry(async () => {
-      const completion = await openai.chat.completions.create({
-        model: config.openaiModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: config.openaiTemperature,
-        max_tokens: config.openaiMaxTokens,
-      });
-
-      return completion;
-    });
-
-    const content = response.choices[0]?.message?.content || '';
-
-    if (!content) {
-      throw new Error('OpenAI returned empty content');
-    }
+    // Call shared LLM client (uses Responses API with web search)
+    const response = await generateNewsletterContentShared(
+      user.id,
+      user.email,
+      userContext,
+    );
 
     const duration = Date.now() - startTime;
 
@@ -115,12 +66,12 @@ Guidelines:
       userId: user.id,
       email: user.email,
       model: response.model,
-      tokensUsed: response.usage?.total_tokens || 0,
-      contentLength: content.length,
+      tokensUsed: response.tokenCount,
+      contentLength: response.content.length,
       durationMs: duration,
     });
 
-    return content;
+    return response.content;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logError('newsletter_generation_failed', {
@@ -139,4 +90,3 @@ Guidelines:
     });
   }
 };
-

@@ -8,8 +8,8 @@
  */
 
 import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { generateResponse, formatEmailInput } from '../../supabase/functions/email-webhook/llmClient.ts';
-import type { IncomingEmail } from '../../supabase/functions/email-webhook/types.ts';
+import { generateEmailResponse as generateResponse, formatEmailInput } from '../../supabase/functions/_shared/llmClient.ts';
+import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
 
 /**
  * Check if OpenAI API key is available

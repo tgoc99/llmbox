@@ -149,6 +149,32 @@ deno task test:personifeed
 deno task test:integration:personifeed
 ```
 
+### Manual Testing
+
+**1. Test Signup Function**
+- Navigate to landing page: `https://[your-domain]/personifeed`
+- Enter valid email and prompt → Submit
+- Verify success message and check database: `SELECT * FROM users WHERE email = '...'`
+
+**2. Test Cron Job Manually**
+```bash
+deno task trigger:cron
+```
+- Check response for `"success": true`
+- Check email inbox for newsletter
+- Verify in database: `SELECT * FROM newsletters WHERE user_id = '...'`
+
+**3. Test Reply Function**
+- Reply to newsletter email with feedback
+- Check database: `SELECT * FROM customizations WHERE type = 'feedback'`
+- Verify confirmation email received
+
+**4. Test Complete User Journey**
+- Day 1: Sign up with test email
+- Day 2 @ 11am ET: Verify first newsletter received
+- Day 2: Reply with feedback → verify confirmation email
+- Day 3 @ 11am ET: Verify updated newsletter with feedback incorporated
+
 ## 📊 Database Schema
 
 ### users
