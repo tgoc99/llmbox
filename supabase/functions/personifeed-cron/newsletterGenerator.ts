@@ -6,7 +6,8 @@
 import type { Customization, User } from '../_shared/types.ts';
 import { LLMError } from '../_shared/errors.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
-import { generateNewsletterContent as generateNewsletterContentShared } from '../_shared/llmClient.ts';
+import { generateLLMResponse } from '../_shared/llmClient.ts';
+import { getNewsletterSystemPrompt } from './prompts.ts';
 
 /**
  * Format customizations into context for LLM
@@ -52,12 +53,25 @@ export const generateNewsletterContent = async (
       customizationsCount: customizations.length,
     });
 
-    // Call shared LLM client (uses Responses API with web search)
-    const response = await generateNewsletterContentShared(
-      user.id,
-      user.email,
-      userContext,
-    );
+    // Generate newsletter content using Responses API
+    const todayDate = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    // Load the comprehensive system prompt from markdown file
+    const instructions = await getNewsletterSystemPrompt();
+
+    const input = `${userContext}Generate today's personalized newsletter for ${todayDate}.`;
+
+    const response = await generateLLMResponse({
+      instructions,
+      input,
+      enableWebSearch: true, // Always enable web search for newsletters
+      logContext: { userId: user.id, email: user.email },
+    });
 
     const duration = Date.now() - startTime;
 

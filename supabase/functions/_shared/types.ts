@@ -48,8 +48,10 @@ export interface OutgoingEmail {
   to: string;
   /** Email subject with "Re: " prefix */
   subject: string;
-  /** Response content from LLM */
+  /** Response content from LLM (plain text or markdown) */
   body: string;
+  /** HTML version of body (optional) */
+  htmlBody?: string;
   /** Original message ID this email replies to */
   inReplyTo: string;
   /** Updated thread references */
