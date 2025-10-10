@@ -354,7 +354,6 @@ If tests timeout, increase timeout in test files or check API status.
 
 - Unit/contract tests run on every PR (free, fast)
 - Integration tests only run on push to main/develop (limited)
-- E2E tests run manually or weekly (very expensive)
 
 ## Best Practices
 

@@ -859,8 +859,7 @@ supabase functions deploy email-webhook --version <version-id>
 - **Approach:** Test-after development for MVP (write tests after implementing features)
 - **Coverage Goals:** 80% code coverage for critical paths (webhook verification, API calls, retry
   logic)
-- **Test Pyramid:** Heavy emphasis on unit tests (70%), moderate integration tests (25%), minimal
-  E2E (5%)
+- **Test Pyramid:** Heavy emphasis on unit tests (75%), moderate integration tests (25%)
 
 ### Test Types and Organization
 
@@ -936,14 +935,6 @@ Deno.test('OpenAI integration - generates response', async () => {
 - **Scope:** Full email flow from SendGrid webhook to email delivery
 - **Environment:** Staging environment with real services
 - **Test Data:** Test email accounts and known input/output pairs
-
-**Manual E2E Test Process:**
-
-1. Send email to staging service address
-2. Verify webhook received in Supabase logs
-3. Verify OpenAI API call in logs
-4. Verify response email received in test inbox
-5. Verify email threading (In-Reply-To headers)
 
 ### Test Data Management
 

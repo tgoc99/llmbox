@@ -8,7 +8,7 @@ import { corsHeaders, handlePreflight } from '../_shared/cors.ts';
 import { logInfo } from '../_shared/logger.ts';
 import { handleError } from '../_shared/errors.ts';
 import type { SignupRequest, SignupResponse } from '../_shared/types.ts';
-import { addCustomization, createUser, getUserByEmail } from './database.ts';
+import { signupUser } from './database.ts';
 import { sanitizePrompt, validateEmail, validatePrompt } from './validation.ts';
 
 /**
@@ -37,37 +37,14 @@ const handleSignup = async (req: Request): Promise<Response> => {
       promptLength: sanitizedPrompt.length,
     });
 
-    // Check if user already exists
-    let user = await getUserByEmail(sanitizedEmail);
+    // Sign up user for Personifeed (creates/updates user and user_products)
+    const { user, userProduct } = await signupUser(sanitizedEmail, sanitizedPrompt);
 
-    if (user) {
-      // User exists - add new initial customization
-      await addCustomization(user.id, sanitizedPrompt, 'initial');
+    // Check if this was a new signup or updating existing user
+    const isExistingUser = userProduct.status !== 'active' ||
+      new Date(userProduct.created_at).getTime() < Date.now() - 1000;
 
-      logInfo('signup_existing_user', {
-        userId: user.id,
-        email: sanitizedEmail,
-        durationMs: Date.now() - startTime,
-      });
-
-      const response: SignupResponse = {
-        success: true,
-        message:
-          "Welcome back! We've updated your preferences. Your next newsletter arrives tomorrow at 11am ET.",
-        userId: user.id,
-      };
-
-      return new Response(JSON.stringify(response), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // New user - create user and add initial customization
-    user = await createUser(sanitizedEmail);
-    await addCustomization(user.id, sanitizedPrompt, 'initial');
-
-    logInfo('signup_new_user', {
+    logInfo(isExistingUser ? 'signup_existing_user' : 'signup_new_user', {
       userId: user.id,
       email: sanitizedEmail,
       durationMs: Date.now() - startTime,
@@ -75,7 +52,9 @@ const handleSignup = async (req: Request): Promise<Response> => {
 
     const response: SignupResponse = {
       success: true,
-      message: 'Success! Your first newsletter arrives tomorrow at 11am ET.',
+      message: isExistingUser
+        ? "Welcome back! We've updated your preferences. Your next newsletter arrives tomorrow at 11am ET."
+        : 'Success! Your first newsletter arrives tomorrow at 11am ET.',
       userId: user.id,
     };
 

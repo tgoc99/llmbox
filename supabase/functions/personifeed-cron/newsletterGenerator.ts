@@ -3,29 +3,30 @@
  * Uses OpenAI Responses API with web search enabled
  */
 
-import type { Customization, User } from '../_shared/types.ts';
+import type { LLMResponse, PersonifeedSettings, User } from '../_shared/types.ts';
 import { LLMError } from '../_shared/errors.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
 import { generateLLMResponse } from '../_shared/llmClient.ts';
 import { getNewsletterSystemPrompt } from './prompts.ts';
 
 /**
- * Format customizations into context for LLM
+ * Format user settings and initial prompt into context for LLM
  */
-const formatCustomizationsContext = (customizations: Customization[]): string => {
-  const initial = customizations.find((c) => c.type === 'initial');
-  const feedbacks = customizations.filter((c) => c.type === 'feedback');
-
+const formatUserContext = (settings: PersonifeedSettings): string => {
   let context = '';
 
-  if (initial) {
-    context += `User's initial request:\n${initial.content}\n\n`;
+  if (settings.initialPrompt) {
+    context += `User's interests and preferences:\n${settings.initialPrompt}\n\n`;
   }
 
-  if (feedbacks.length > 0) {
-    context += `User feedback for customization:\n`;
-    feedbacks.forEach((feedback, index) => {
-      context += `${index + 1}. ${feedback.content}\n`;
+  if (settings.topics && settings.topics.length > 0) {
+    context += `Topics to focus on: ${settings.topics.join(', ')}\n\n`;
+  }
+
+  if (settings.feedbacks && settings.feedbacks.length > 0) {
+    context += `User feedback from previous newsletters:\n`;
+    settings.feedbacks.forEach((feedback, index) => {
+      context += `${index + 1}. ${feedback}\n`;
     });
     context += '\n';
   }
@@ -36,21 +37,24 @@ const formatCustomizationsContext = (customizations: Customization[]): string =>
 /**
  * Generate newsletter content for a user
  * Uses shared LLM client with Responses API and web search
+ * Returns both content and LLM response for token tracking
  */
 export const generateNewsletterContent = async (
   user: User,
-  customizations: Customization[],
-): Promise<string> => {
+  settings: PersonifeedSettings,
+): Promise<LLMResponse> => {
   const startTime = Date.now();
 
   try {
-    // Format user context from customizations
-    const userContext = formatCustomizationsContext(customizations);
+    // Format user context from settings
+    const userContext = formatUserContext(settings);
 
     logInfo('newsletter_generation_started', {
       userId: user.id,
       email: user.email,
-      customizationsCount: customizations.length,
+      hasInitialPrompt: !!settings.initialPrompt,
+      topicsCount: settings.topics?.length || 0,
+      feedbacksCount: settings.feedbacks?.length || 0,
     });
 
     // Generate newsletter content using Responses API
@@ -84,7 +88,7 @@ export const generateNewsletterContent = async (
       durationMs: duration,
     });
 
-    return response.content;
+    return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logError('newsletter_generation_failed', {
@@ -93,7 +97,7 @@ export const generateNewsletterContent = async (
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
-      customizationsCount: customizations.length,
+      hasInitialPrompt: !!settings.initialPrompt,
     });
 
     throw new LLMError('Failed to generate newsletter', {

@@ -49,7 +49,6 @@ deno test tests/integration/end-to-end.test.ts --allow-all --allow-env
 
 - **OpenAI tests:** Check console for response content and token counts
 - **SendGrid tests:** Check recipient inbox for actual email delivery
-- **E2E tests:** Verify both console output and inbox
 
 ## Troubleshooting
 

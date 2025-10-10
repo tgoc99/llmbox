@@ -17,11 +17,19 @@ import {
   validateRequestMethod,
 } from './requestHandler.ts';
 import { checkOperationThreshold, checkTotalProcessingThreshold } from './performanceMonitor.ts';
+import {
+  ensureUserExists,
+  logIncomingEmail,
+  logLLMTokenUsage,
+  logOutgoingEmail,
+} from './database.ts';
 
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
   let messageId = 'unknown';
   let formData: FormData | null = null;
+  let userId: string | null = null;
+  let incomingEmailId: string | null = null;
 
   try {
     // Check request method
@@ -59,6 +67,29 @@ Deno.serve(async (req: Request) => {
     // Check if parsing took longer than 2 seconds
     checkOperationThreshold('webhook_parsing', parsingTime, 2000, email.messageId);
 
+    // Ensure user exists in database and log incoming email
+    try {
+      perf.start('database_operations');
+      userId = await ensureUserExists(email.from);
+      incomingEmailId = await logIncomingEmail(userId, email);
+      const dbTime = perf.end('database_operations');
+
+      logInfo('database_operations_completed', {
+        messageId: email.messageId,
+        userId,
+        incomingEmailId,
+        processingTimeMs: dbTime,
+      });
+    } catch (error) {
+      perf.end('database_operations');
+      // Log error but don't fail the entire request
+      logError('database_operations_failed', {
+        messageId: email.messageId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+
     // Generate LLM response with error handling
     perf.start('openai_call');
     let llmResponse;
@@ -84,6 +115,19 @@ Deno.serve(async (req: Request) => {
 
       // Check if LLM call took longer than 20 seconds
       checkOperationThreshold('openai_call', llmTime, 20000, email.messageId);
+
+      // Log token usage to database
+      if (userId && incomingEmailId) {
+        try {
+          await logLLMTokenUsage(userId, incomingEmailId, llmResponse, email.messageId);
+        } catch (error) {
+          // Log error but don't fail the request
+          logError('token_usage_log_failed', {
+            messageId: email.messageId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
     } catch (error) {
       const llmTime = perf.end('openai_call');
       errorEmail = handleOpenAIError(error, email, llmTime, formData);
@@ -114,6 +158,30 @@ Deno.serve(async (req: Request) => {
           messageId: email.messageId,
           recipient: outgoingEmail.to,
         });
+      }
+
+      // Log outgoing email to database (only if not an error email)
+      if (userId && !errorEmail) {
+        try {
+          const threadId = email.inReplyTo || email.messageId;
+          await logOutgoingEmail(
+            userId,
+            outgoingEmail.from,
+            outgoingEmail.to,
+            outgoingEmail.subject,
+            outgoingEmail.body,
+            outgoingEmail.htmlBody,
+            threadId,
+            outgoingEmail.inReplyTo,
+            outgoingEmail.references,
+          );
+        } catch (error) {
+          // Log error but don't fail the request
+          logError('outgoing_email_log_failed', {
+            messageId: email.messageId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
     } catch (error) {
       perf.end('email_send');

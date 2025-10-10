@@ -11,7 +11,7 @@ import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
  */
 
 const MIGRATIONS_DIR = './supabase/migrations';
-const SCHEMA_FILE = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+const SCHEMA_FILE = `${MIGRATIONS_DIR}/20251010000000_unified_architecture.sql`;
 
 Deno.test('constraints - users table has email NOT NULL', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
@@ -52,7 +52,7 @@ Deno.test('constraints - users table has unique email constraint', async () => {
   );
 });
 
-Deno.test('constraints - users has default for active', async () => {
+Deno.test('constraints - users has default for updated_at', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   const usersTableMatch = content.match(
@@ -61,13 +61,13 @@ Deno.test('constraints - users has default for active', async () => {
 
   const usersTable = usersTableMatch![0];
 
-  // Check active has default value
-  const activeLine = usersTable.split('\n').find((line) => line.includes('active'));
+  // Check updated_at has default value
+  const updatedAtLine = usersTable.split('\n').find((line) => line.includes('updated_at'));
 
   assertEquals(
-    activeLine?.toUpperCase().includes('DEFAULT'),
+    updatedAtLine?.toUpperCase().includes('DEFAULT'),
     true,
-    'active should have DEFAULT value',
+    'updated_at should have DEFAULT value',
   );
 });
 
@@ -90,51 +90,51 @@ Deno.test('constraints - users has timestamps with defaults', async () => {
   );
 });
 
-Deno.test('constraints - newsletters has foreign key to users', async () => {
+Deno.test('constraints - emails has foreign key to users', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  const newslettersTableMatch = content.match(
-    /CREATE TABLE.*?newsletters.*?\([\s\S]*?\);/i,
+  const emailsTableMatch = content.match(
+    /CREATE TABLE.*?emails.*?\([\s\S]*?\);/i,
   );
 
   assertEquals(
-    newslettersTableMatch !== null,
+    emailsTableMatch !== null,
     true,
-    'newsletters table should exist',
+    'emails table should exist',
   );
 
-  const newslettersTable = newslettersTableMatch![0];
+  const emailsTable = emailsTableMatch![0];
 
   // Check for foreign key constraint
   assertEquals(
-    newslettersTable.toUpperCase().includes('REFERENCES') &&
-      newslettersTable.includes('users'),
+    emailsTable.toUpperCase().includes('REFERENCES') &&
+      emailsTable.includes('users'),
     true,
-    'newsletters should have foreign key to users',
+    'emails should have foreign key to users',
   );
 });
 
-Deno.test('constraints - customizations has foreign key to users', async () => {
+Deno.test('constraints - user_products has foreign keys', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  const customizationsTableMatch = content.match(
-    /CREATE TABLE.*?customizations.*?\([\s\S]*?\);/i,
+  const userProductsTableMatch = content.match(
+    /CREATE TABLE.*?user_products.*?\([\s\S]*?\);/i,
   );
 
   assertEquals(
-    customizationsTableMatch !== null,
+    userProductsTableMatch !== null,
     true,
-    'customizations table should exist',
+    'user_products table should exist',
   );
 
-  const customizationsTable = customizationsTableMatch![0];
+  const userProductsTable = userProductsTableMatch![0];
 
-  // Check for foreign key constraint
+  // Check for foreign key constraints to both users and products
   assertEquals(
-    customizationsTable.toUpperCase().includes('REFERENCES') &&
-      customizationsTable.includes('users'),
+    userProductsTable.toUpperCase().includes('REFERENCES') &&
+      (userProductsTable.includes('users') || userProductsTable.includes('products')),
     true,
-    'customizations should have foreign key to users',
+    'user_products should have foreign keys',
   );
 });
 

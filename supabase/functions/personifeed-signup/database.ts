@@ -1,101 +1,84 @@
 /**
  * Database access layer for personifeed-signup function
+ * Uses new unified multi-product architecture
  */
 
-import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, User } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logError, logInfo } from '../_shared/logger.ts';
+import { logInfo } from '../_shared/logger.ts';
+import {
+  getOrCreateUser,
+  getOrCreateUserProduct,
+  updateUserProductSettings,
+} from '../_shared/database.ts';
+import type { PersonifeedSettings, User, UserProduct } from '../_shared/types.ts';
+
+const PRODUCT_ID = 'personifeed';
 
 /**
- * Get user by email
+ * Create or get existing user and sign them up for Personifeed
+ * Stores initial customization in user_products.settings
  */
-export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
+export const signupUser = async (
+  email: string,
+  initialPrompt: string,
+): Promise<{ user: User; userProduct: UserProduct }> => {
+  try {
+    // Get or create user
+    const user = await getOrCreateUser(email);
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
+    // Initial settings with customization
+    const initialSettings: PersonifeedSettings = {
+      topics: [],
+      // Store the initial prompt in settings for newsletter generation
+      // We'll parse topics from it or use it directly
+    };
 
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserByEmail',
-      email,
-      error: error.message,
+    // Get or create user-product relationship
+    const userProduct = await getOrCreateUserProduct(user.id, PRODUCT_ID, {
+      ...initialSettings,
+      initialPrompt, // Store initial prompt for first newsletter
     });
-    throw new DatabaseError('Failed to query user', { email, error: error.message });
-  }
 
-  return data as User | null;
+    logInfo('personifeed_signup_completed', {
+      userId: user.id,
+      email: user.email,
+      initialPromptLength: initialPrompt.length,
+    });
+
+    return { user, userProduct };
+  } catch (error) {
+    throw new DatabaseError('Failed to sign up user for Personifeed', {
+      email,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 };
 
 /**
- * Create new user
+ * Update user's Personifeed settings (topics, time, timezone)
  */
-export const createUser = async (email: string): Promise<User> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email, active: true })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createUser',
-      email,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to create user', { email, error: error.message });
-  }
-
-  logInfo('user_created', { userId: data.id, email });
-  return data as User;
-};
-
-/**
- * Add customization for user
- */
-export const addCustomization = async (
+export const updatePersonifeedSettings = async (
   userId: string,
-  content: string,
-  type: 'initial' | 'feedback',
-): Promise<Customization> => {
-  const supabase = getSupabaseClient();
+  settings: Partial<PersonifeedSettings>,
+): Promise<UserProduct> => {
+  try {
+    // Merge with existing settings
+    const updatedSettings = {
+      ...settings,
+    };
 
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
-      content,
-      type,
-    })
-    .select()
-    .single();
+    const userProduct = await updateUserProductSettings(userId, PRODUCT_ID, updatedSettings);
 
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addCustomization',
+    logInfo('personifeed_settings_updated', {
       userId,
-      type,
-      error: error.message,
+      settingsKeys: Object.keys(settings),
     });
-    throw new DatabaseError('Failed to add customization', {
+
+    return userProduct;
+  } catch (error) {
+    throw new DatabaseError('Failed to update Personifeed settings', {
       userId,
-      type,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('customization_added', {
-    customizationId: data.id,
-    userId,
-    type,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };

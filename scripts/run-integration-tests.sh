@@ -155,11 +155,6 @@ if [ $# -gt 0 ]; then
             check_env_vars || true
             run_tests "tests/integration/sendgrid.test.ts"
             ;;
-        --e2e|-e)
-            print_header "Running End-to-End Integration Tests"
-            check_env_vars || true
-            run_tests "tests/integration/end-to-end.test.ts"
-            ;;
         --config|-c)
             show_config
             ;;
@@ -181,7 +176,6 @@ if [ $# -gt 0 ]; then
             echo "  -a, --all       Run all integration tests"
             echo "  -o, --openai    Run OpenAI tests only"
             echo "  -s, --sendgrid  Run SendGrid tests only"
-            echo "  -e, --e2e       Run end-to-end tests only"
             echo "  -c, --config    Show current configuration"
             echo "  -k, --check     Check environment variables"
             echo "  -h, --help      Show this help message"
@@ -192,9 +186,9 @@ if [ $# -gt 0 ]; then
             echo "  $0 --config              # Show configuration"
             echo ""
             echo "Environment Variables:"
-            echo "  OPENAI_API_KEY           Required for OpenAI and E2E tests"
-            echo "  SENDGRID_API_KEY         Required for SendGrid and E2E tests"
-            echo "  SERVICE_EMAIL_ADDRESS    Required for SendGrid and E2E tests"
+            echo "  OPENAI_API_KEY           Required for OpenAI tests"
+            echo "  SENDGRID_API_KEY         Required for SendGrid tests"
+            echo "  SERVICE_EMAIL_ADDRESS    Required for SendGrid tests"
             echo "  TEST_RECIPIENT_EMAIL     Optional, defaults to SERVICE_EMAIL_ADDRESS"
             ;;
         *)

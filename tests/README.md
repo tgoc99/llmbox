@@ -18,26 +18,17 @@ tests/
 │   ├── database-schema.test.ts
 │   └── type-safety.test.ts
 │
-├── integration/                   # Slow, real API calls
-│   ├── external-apis/             # External service tests
-│   │   ├── openai.test.ts
-│   │   ├── sendgrid.test.ts
-│   │   └── supabase-db.test.ts
-│   ├── llmbox/                    # LLMBox integration tests
-│   │   └── webhook-flow.test.ts
-│   ├── personifeed/               # Personifeed integration tests
-│   │   ├── signup-flow.test.ts
-│   │   ├── cron-flow.test.ts
-│   │   └── reply-flow.test.ts
-│   └── end-to-end.test.ts         # Legacy E2E test
-│
-└── e2e/                           # Slowest, full user journeys
-    ├── llmbox/
-    │   └── email-to-response.test.ts
-    └── personifeed/
-        ├── signup-to-confirmation.test.ts
-        ├── daily-newsletter.test.ts
-        └── reply-customization.test.ts
+└── integration/                   # Slow, real API calls
+    ├── external-apis/             # External service tests
+    │   ├── openai.test.ts
+    │   ├── sendgrid.test.ts
+    │   └── supabase-db.test.ts
+    ├── llmbox/                    # LLMBox integration tests
+    │   └── webhook-flow.test.ts
+    └── personifeed/               # Personifeed integration tests
+        ├── signup-flow.test.ts
+        ├── cron-flow.test.ts
+        └── reply-flow.test.ts
 ```
 
 ## 🎯 Test Types
@@ -129,34 +120,6 @@ deno task test:integration:personifeed # Personifeed flows
 
 ---
 
-### E2E Tests (`tests/e2e/`)
-
-**Speed:** 🐢 Very Slow (5-15 minutes)\
-**Cost:** $$$$
-
-(full workflows)\
-**When to run:** Before major deployments, weekly
-
-Tests complete user journeys from start to finish with all real services.
-
-```bash
-# All E2E tests (very expensive!)
-deno task test:e2e
-
-# Test specific services
-deno task test:e2e:llmbox        # Email to LLM to response
-deno task test:e2e:personifeed   # Full signup/newsletter/reply flows
-```
-
-**What's tested:**
-
-- Complete email-to-response workflow
-- Full signup-to-confirmation flow
-- Daily newsletter generation and delivery
-- Reply handling and customization
-
----
-
 ## 🚀 Quick Reference
 
 ### Development Workflow
@@ -167,7 +130,6 @@ deno task test:e2e:personifeed   # Full signup/newsletter/reply flows
 | **Before commit**    | `deno task check`           | ⚡️ 30s     | Free   |
 | **After DB changes** | `deno task db:test`         | ⚡️ 30s     | Free/$ |
 | **Before deploy**    | `deno task test:pre-deploy` | 🐢 2-5min  | $$$    |
-| **After deploy**     | `deno task test:e2e`        | 🐢 10min   | $$$$   |
 
 ### Common Commands
 
@@ -193,7 +155,7 @@ deno task check:quick
 
 ## ⚙️ Environment Variables
 
-### Required for Integration/E2E Tests
+### Required for Integration Tests
 
 ```bash
 # External APIs
@@ -220,18 +182,16 @@ Tests gracefully skip when API keys are missing:
 - ✅ Unit tests run normally (no API keys needed)
 - ✅ Contract tests run normally (no API keys needed)
 - ⚠️ Integration tests skip with warning
-- ⚠️ E2E tests skip with warning
 
 ---
 
 ## 📊 Coverage Goals
 
-| Layer                 | Target    | Command                   |
-| --------------------- | --------- | ------------------------- |
-| **Unit tests**        | > 80%     | `deno task test:coverage` |
-| **Contract tests**    | > 70%     | Included in coverage      |
-| **Integration tests** | > 60%     | Not measured              |
-| **E2E tests**         | Key flows | Not measured              |
+| Layer                 | Target | Command                   |
+| --------------------- | ------ | ------------------------- |
+| **Unit tests**        | > 80%  | `deno task test:coverage` |
+| **Contract tests**    | > 70%  | Included in coverage      |
+| **Integration tests** | > 60%  | Not measured              |
 
 **View coverage:**
 
@@ -296,41 +256,6 @@ Deno.test({
 });
 ```
 
-### E2E Test Template
-
-```typescript
-// tests/e2e/myService/complete-flow.test.ts
-import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-
-const shouldSkip = !Deno.env.get('API_KEY_1') || !Deno.env.get('API_KEY_2');
-
-if (shouldSkip) {
-  console.log('⚠️  Skipping E2E test (missing credentials)');
-}
-
-Deno.test({
-  name: 'e2e - complete user journey',
-  ignore: shouldSkip,
-  async fn() {
-    console.log('🚀 Starting E2E test');
-
-    // Step 1: Create resource
-    console.log('📝 Step 1: Creating...');
-    const created = await createResource();
-
-    // Step 2: Process resource
-    console.log('⚙️  Step 2: Processing...');
-    const processed = await processResource(created.id);
-
-    // Step 3: Verify result
-    console.log('✅ Step 3: Verifying...');
-    assertEquals(processed.status, 'complete');
-
-    console.log('✅ E2E test completed');
-  },
-});
-```
-
 ---
 
 ## 🚫 Testing Anti-Patterns
@@ -343,7 +268,6 @@ Deno.test({
 - Skip edge cases in unit tests
 - Hardcode production IDs/emails in tests
 - Leave `console.log` in tests (use assertions)
-- Run E2E tests on every commit (too slow/expensive)
 - Commit failing tests
 
 ### ✅ Do
@@ -353,7 +277,7 @@ Deno.test({
 - Use descriptive test names: `"should send email when user signs up"`
 - Test error cases and edge cases
 - Use factories/fixtures for test data
-- Clean up test data after integration/E2E tests
+- Clean up test data after integration tests
 - Skip expensive tests gracefully if API keys missing
 - Run `deno task check` before every commit
 - Run `deno task test:pre-deploy` before deployment
@@ -492,5 +416,4 @@ jobs:
 - **Pre-deploy (`deno task test:pre-deploy`)**: Fast tests + integration tests
 - **Full validation (`deno task test:all`)**: Everything (expensive!)
 
-**Best practice:** Run unit tests constantly, integration tests before deployment, E2E tests weekly
-or before major releases.
+**Best practice:** Run unit tests constantly, integration tests before deployment.

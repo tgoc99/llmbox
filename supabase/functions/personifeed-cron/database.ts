@@ -1,146 +1,156 @@
 /**
  * Database access layer for personifeed-cron function
+ * Uses new unified multi-product architecture
  */
 
 import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, Newsletter, User } from '../_shared/types.ts';
+import { logEmail, logTokenUsage } from '../_shared/database.ts';
+import type { LLMResponse, PersonifeedSettings, User, UserProduct } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
 
+const PRODUCT_ID = 'personifeed';
+
 /**
- * Get all active users
+ * Interface for active Personifeed subscriber
  */
-export const getAllActiveUsers = async (): Promise<User[]> => {
+export interface PersonifeedSubscriber {
+  user: User;
+  userProduct: UserProduct;
+  settings: PersonifeedSettings;
+}
+
+/**
+ * Get all active Personifeed subscribers
+ */
+export const getAllActiveSubscribers = async (): Promise<PersonifeedSubscriber[]> => {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('active', true)
+    .from('user_products')
+    .select(`
+      *,
+      users:user_id (*)
+    `)
+    .eq('product_id', PRODUCT_ID)
+    .eq('status', 'active')
     .order('created_at', { ascending: true });
 
   if (error) {
     logError('database_query_failed', {
-      operation: 'getAllActiveUsers',
+      operation: 'getAllActiveSubscribers',
       error: error.message,
     });
-    throw new DatabaseError('Failed to fetch active users', { error: error.message });
+    throw new DatabaseError('Failed to fetch active subscribers', { error: error.message });
   }
 
-  return (data as User[]) || [];
-};
-
-/**
- * Get all customizations for a user
- */
-export const getUserCustomizations = async (userId: string): Promise<Customization[]> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserCustomizations',
-      userId,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to fetch user customizations', {
-      userId,
-      error: error.message,
-    });
-  }
-
-  return (data as Customization[]) || [];
-};
-
-/**
- * Create newsletter record
- */
-export const createNewsletter = async (
-  userId: string,
-  content: string,
-  status: 'pending' | 'sent' | 'failed',
-): Promise<Newsletter> => {
-  const supabase = getSupabaseClient();
-
-  const newsletterData: {
+  // Transform data into PersonifeedSubscriber format
+  const subscribers: PersonifeedSubscriber[] = (data || []).map((row: {
     user_id: string;
-    content: string;
-    status: string;
-    sent_at?: string;
-  } = {
-    user_id: userId,
-    content,
-    status,
-  };
+    product_id: string;
+    status: 'active' | 'paused' | 'unsubscribed';
+    settings: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+    users: User;
+  }) => ({
+    user: row.users as User,
+    userProduct: {
+      user_id: row.user_id,
+      product_id: row.product_id,
+      status: row.status,
+      settings: row.settings,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as UserProduct,
+    settings: row.settings as PersonifeedSettings,
+  }));
 
-  // Add sent_at timestamp if status is 'sent'
-  if (status === 'sent') {
-    newsletterData.sent_at = new Date().toISOString();
-  }
-
-  const { data, error } = await supabase
-    .from('newsletters')
-    .insert(newsletterData)
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createNewsletter',
-      userId,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to create newsletter', {
-      userId,
-      error: error.message,
-    });
-  }
-
-  return data as Newsletter;
+  return subscribers;
 };
 
 /**
- * Update newsletter status
+ * Log newsletter email sent to user
  */
-export const updateNewsletterStatus = async (
-  newsletterId: string,
-  status: 'sent' | 'failed',
+export const logNewsletterEmail = async (
+  userId: string,
+  userEmail: string,
+  fromEmail: string,
+  subject: string,
+  bodyText: string,
+  bodyHtml: string,
+  messageId?: string,
+): Promise<string> => {
+  try {
+    const email = await logEmail({
+      userId,
+      productId: PRODUCT_ID,
+      direction: 'outgoing',
+      type: 'newsletter_scheduled',
+      fromEmail,
+      toEmail: userEmail,
+      subject,
+      bodyText,
+      bodyHtml,
+      externalId: messageId,
+      sentAt: new Date(),
+    });
+
+    logInfo('newsletter_email_logged', {
+      emailId: email.id,
+      userId,
+      userEmail,
+    });
+
+    return email.id;
+  } catch (error) {
+    logError('newsletter_email_log_failed', {
+      userId,
+      userEmail,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to log newsletter email', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+/**
+ * Log AI token usage for newsletter generation
+ */
+export const logNewsletterTokenUsage = async (
+  userId: string,
+  emailId: string,
+  llmResponse: LLMResponse,
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
-
-  const updateData: {
-    status: string;
-    sent_at?: string;
-  } = { status };
-
-  // Add sent_at timestamp if status is 'sent'
-  if (status === 'sent') {
-    updateData.sent_at = new Date().toISOString();
-  }
-
-  const { error } = await supabase
-    .from('newsletters')
-    .update(updateData)
-    .eq('id', newsletterId);
-
-  if (error) {
-    logError('database_update_failed', {
-      operation: 'updateNewsletterStatus',
-      newsletterId,
-      status,
-      error: error.message,
+  try {
+    await logTokenUsage({
+      userId,
+      productId: PRODUCT_ID,
+      operationType: 'newsletter_generate',
+      emailId,
+      model: llmResponse.model,
+      promptTokens: llmResponse.promptTokens,
+      completionTokens: llmResponse.completionTokens,
+      totalTokens: llmResponse.tokenCount,
+      metadata: {
+        completionTimeMs: llmResponse.completionTime,
+      },
     });
-    throw new DatabaseError('Failed to update newsletter status', {
-      newsletterId,
-      status,
-      error: error.message,
-    });
-  }
 
-  logInfo('newsletter_status_updated', { newsletterId, status });
+    logInfo('newsletter_token_usage_logged', {
+      userId,
+      emailId,
+      model: llmResponse.model,
+      totalTokens: llmResponse.tokenCount,
+    });
+  } catch (error) {
+    logError('newsletter_token_usage_log_failed', {
+      userId,
+      emailId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't throw - just log the error
+  }
 };

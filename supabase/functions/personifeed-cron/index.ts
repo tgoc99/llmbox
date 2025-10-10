@@ -5,52 +5,60 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
-import { createNewsletter, getAllActiveUsers, getUserCustomizations } from './database.ts';
+import { config } from '../_shared/config.ts';
+import {
+  getAllActiveSubscribers,
+  logNewsletterEmail,
+  logNewsletterTokenUsage,
+  type PersonifeedSubscriber,
+} from './database.ts';
 import { generateNewsletterContent } from './newsletterGenerator.ts';
 import { sendNewsletterEmail as sendNewsletter } from '../_shared/emailSender.ts';
 
 /**
- * Process a single user: generate newsletter and send email
+ * Process a single subscriber: generate newsletter and send email
  */
-const processUser = async (user: { id: string; email: string }): Promise<boolean> => {
-  try {
-    // Fetch user customizations
-    const customizations = await getUserCustomizations(user.id);
+const processSubscriber = async (subscriber: PersonifeedSubscriber): Promise<boolean> => {
+  const { user, settings } = subscriber;
 
-    if (customizations.length === 0) {
-      logError('no_customizations_found', {
+  try {
+    // Check if user has initial prompt or topics
+    if (!settings.initialPrompt && (!settings.topics || settings.topics.length === 0)) {
+      logError('no_user_preferences', {
         userId: user.id,
         email: user.email,
-        message: 'User has no customizations stored',
+        message: 'User has no initial prompt or topics configured',
       });
       return false;
     }
 
     // Generate newsletter content
-    const content = await generateNewsletterContent(
-      { ...user, active: true, created_at: new Date() },
-      customizations,
-    );
-
-    // Create newsletter record in database (status: pending)
-    const newsletter = await createNewsletter(user.id, content, 'sent');
+    const llmResponse = await generateNewsletterContent(user, settings);
 
     // Send email
-    await sendNewsletter(user.id, user.email, content);
+    const fromEmail = config.serviceEmailAddress;
+    const subject = `Your Daily Personifeed - ${
+      new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }`;
 
-    logInfo('user_processed_successfully', {
-      userId: user.id,
-      email: user.email,
-      newsletterId: newsletter.id,
-    });
+    await sendNewsletter(user.id, user.email, llmResponse.content);
 
-    return true;
-  } catch (error) {
-    // Create failed newsletter record
+    // Log email to database
     try {
-      await createNewsletter(user.id, '', 'failed');
+      const emailId = await logNewsletterEmail(
+        user.id,
+        user.email,
+        fromEmail,
+        subject,
+        llmResponse.content,
+        '', // No HTML body for now
+      );
+
+      // Log token usage
+      await logNewsletterTokenUsage(user.id, emailId, llmResponse);
     } catch (dbError) {
-      logError('failed_to_record_failure', {
+      // Log error but don't fail the processing
+      logError('failed_to_log_email', {
         userId: user.id,
         email: user.email,
         dbError: dbError instanceof Error ? dbError.message : String(dbError),
@@ -58,6 +66,14 @@ const processUser = async (user: { id: string; email: string }): Promise<boolean
       });
     }
 
+    logInfo('user_processed_successfully', {
+      userId: user.id,
+      email: user.email,
+      tokensUsed: llmResponse.tokenCount,
+    });
+
+    return true;
+  } catch (error) {
     logError('user_processing_failed', {
       userId: user.id,
       email: user.email,
@@ -80,24 +96,24 @@ const handleCron = async (): Promise<Response> => {
       timestamp: new Date().toISOString(),
     });
 
-    // Fetch all active users
-    const users = await getAllActiveUsers();
+    // Fetch all active subscribers
+    const subscribers = await getAllActiveSubscribers();
 
-    logInfo('users_fetched', {
-      count: users.length,
+    logInfo('subscribers_fetched', {
+      count: subscribers.length,
     });
 
-    if (users.length === 0) {
-      logInfo('no_active_users', {
+    if (subscribers.length === 0) {
+      logInfo('no_active_subscribers', {
         durationMs: Date.now() - startTime,
       });
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'No active users to process',
+          message: 'No active subscribers to process',
           stats: {
-            totalUsers: 0,
+            totalSubscribers: 0,
             successCount: 0,
             failureCount: 0,
           },
@@ -109,15 +125,15 @@ const handleCron = async (): Promise<Response> => {
       );
     }
 
-    // Process each user
+    // Process each subscriber
     let successCount = 0;
     let failureCount = 0;
 
-    // Process users in parallel (10 at a time to avoid overwhelming APIs)
+    // Process subscribers in parallel (10 at a time to avoid overwhelming APIs)
     const batchSize = 10;
-    for (let i = 0; i < users.length; i += batchSize) {
-      const batch = users.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(processUser));
+    for (let i = 0; i < subscribers.length; i += batchSize) {
+      const batch = subscribers.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(processSubscriber));
 
       results.forEach((success) => {
         if (success) {
@@ -131,11 +147,11 @@ const handleCron = async (): Promise<Response> => {
     const duration = Date.now() - startTime;
 
     logInfo('cron_completed', {
-      totalUsers: users.length,
+      totalSubscribers: subscribers.length,
       successCount,
       failureCount,
       durationMs: duration,
-      successRate: ((successCount / users.length) * 100).toFixed(2) + '%',
+      successRate: ((successCount / subscribers.length) * 100).toFixed(2) + '%',
     });
 
     return new Response(
@@ -143,7 +159,7 @@ const handleCron = async (): Promise<Response> => {
         success: true,
         message: 'Cron job completed',
         stats: {
-          totalUsers: users.length,
+          totalSubscribers: subscribers.length,
           successCount,
           failureCount,
           durationMs: duration,

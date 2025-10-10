@@ -1,158 +1,170 @@
 /**
  * Database access layer for personifeed-reply function
+ * Uses new unified multi-product architecture
  */
 
 import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, User } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
+import {
+  getOrCreateUser,
+  getOrCreateUserProduct,
+  getUserByEmail,
+  getUserById,
+  logEmail,
+} from '../_shared/database.ts';
+import type { PersonifeedSettings, User, UserProduct } from '../_shared/types.ts';
+
+const PRODUCT_ID = 'personifeed';
+
+export { getUserByEmail, getUserById };
 
 /**
- * Get user by ID
+ * Ensure user is signed up for Personifeed
+ * For new users created from reply emails
  */
-export const getUserById = async (userId: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
+export const ensurePersonifeedUser = async (
+  email: string,
+  initialContent: string,
+): Promise<{ user: User; userProduct: UserProduct }> => {
+  try {
+    const user = await getOrCreateUser(email);
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserById',
-      userId,
-      error: error.message,
+    // Get or create user-product relationship with initial settings
+    const userProduct = await getOrCreateUserProduct(user.id, PRODUCT_ID, {
+      initialPrompt: initialContent,
+      topics: [],
     });
-    throw new DatabaseError('Failed to query user by ID', { userId, error: error.message });
-  }
 
-  return data as User | null;
-};
+    logInfo('personifeed_user_ensured', {
+      userId: user.id,
+      email: user.email,
+      isNewUser: new Date(user.created_at).getTime() > Date.now() - 5000,
+    });
 
-/**
- * Get user by email
- */
-export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
-
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserByEmail',
+    return { user, userProduct };
+  } catch (error) {
+    logError('personifeed_user_ensure_failed', {
       email,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to query user', { email, error: error.message });
-  }
-
-  return data as User | null;
-};
-
-/**
- * Create new user
- */
-export const createUser = async (email: string): Promise<User> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email, active: true })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createUser',
+    throw new DatabaseError('Failed to ensure Personifeed user', {
       email,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to create user', { email, error: error.message });
   }
-
-  logInfo('user_created', { userId: data.id, email });
-  return data as User;
 };
 
 /**
- * Add feedback customization for user
+ * Update user settings with feedback
+ * Appends feedback to existing settings
  */
-export const addFeedback = async (userId: string, content: string): Promise<Customization> => {
-  const supabase = getSupabaseClient();
+export const addFeedbackToSettings = async (
+  userId: string,
+  feedbackContent: string,
+): Promise<void> => {
+  try {
+    const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
-      content,
-      type: 'feedback',
-    })
-    .select()
-    .single();
+    // Get current settings
+    const { data: userProduct, error: selectError } = await supabase
+      .from('user_products')
+      .select('settings')
+      .eq('user_id', userId)
+      .eq('product_id', PRODUCT_ID)
+      .single();
 
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addFeedback',
+    if (selectError) {
+      throw new Error(`Failed to get user settings: ${selectError.message}`);
+    }
+
+    const currentSettings = (userProduct?.settings || {}) as PersonifeedSettings;
+
+    // Add feedback to settings
+    const feedbacks = currentSettings.feedbacks || [];
+    feedbacks.push(feedbackContent);
+
+    const updatedSettings = {
+      ...currentSettings,
+      feedbacks,
+    };
+
+    // Update settings
+    const { error: updateError } = await supabase
+      .from('user_products')
+      .update({
+        settings: updatedSettings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('product_id', PRODUCT_ID);
+
+    if (updateError) {
+      throw new Error(`Failed to update settings: ${updateError.message}`);
+    }
+
+    logInfo('feedback_added_to_settings', {
       userId,
-      error: error.message,
+      feedbackLength: feedbackContent.length,
+      totalFeedbacks: feedbacks.length,
+    });
+  } catch (error) {
+    logError('add_feedback_failed', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
     });
     throw new DatabaseError('Failed to add feedback', {
       userId,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('feedback_added', {
-    customizationId: data.id,
-    userId,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };
 
 /**
- * Add initial customization for new user (created from reply)
+ * Log incoming reply email from user
  */
-export const addInitialCustomization = async (
+export const logReplyEmail = async (
   userId: string,
-  content: string,
-): Promise<Customization> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
-      content,
-      type: 'initial',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addInitialCustomization',
+  fromEmail: string,
+  toEmail: string,
+  subject: string,
+  bodyText: string,
+  messageId: string,
+  inReplyTo: string | null,
+  references: string[],
+): Promise<string> => {
+  try {
+    const email = await logEmail({
       userId,
-      error: error.message,
+      productId: PRODUCT_ID,
+      direction: 'incoming',
+      type: 'reply_received',
+      fromEmail,
+      toEmail,
+      subject,
+      bodyText,
+      threadId: inReplyTo || messageId,
+      inReplyTo: inReplyTo || undefined,
+      references,
+      externalId: messageId,
     });
-    throw new DatabaseError('Failed to add initial customization', {
+
+    logInfo('reply_email_logged', {
+      emailId: email.id,
       userId,
-      error: error.message,
+      messageId,
+    });
+
+    return email.id;
+  } catch (error) {
+    logError('reply_email_log_failed', {
+      userId,
+      messageId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to log reply email', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('initial_customization_added', {
-    customizationId: data.id,
-    userId,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };

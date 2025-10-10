@@ -8,11 +8,11 @@ import { logError, logInfo } from '../_shared/logger.ts';
 import { ValidationError } from '../_shared/errors.ts';
 import { parseReplyEmail } from './emailParser.ts';
 import {
-  addFeedback,
-  addInitialCustomization,
-  createUser,
+  addFeedbackToSettings,
+  ensurePersonifeedUser,
   getUserByEmail,
   getUserById,
+  logReplyEmail,
 } from './database.ts';
 import { sendConfirmationEmail } from '../_shared/emailSender.ts';
 
@@ -56,7 +56,9 @@ const handleReply = async (req: Request): Promise<Response> => {
     formData = await req.formData();
 
     // Parse email
-    const { from, to, userId, body, messageId } = parseReplyEmail(formData);
+    const { from, to, userId, body, messageId, subject, inReplyTo, references } = parseReplyEmail(
+      formData,
+    );
 
     logInfo('reply_received', {
       from,
@@ -86,13 +88,13 @@ const handleReply = async (req: Request): Promise<Response> => {
     }
 
     if (!user) {
-      // New user - create user and add initial customization
+      // New user - create user and sign up for Personifeed with initial content
       logInfo('reply_from_new_user', {
         email: from,
       });
 
-      user = await createUser(from);
-      await addInitialCustomization(user.id, sanitizedBody);
+      const result = await ensurePersonifeedUser(from, sanitizedBody);
+      user = result.user;
 
       logInfo('new_user_created_from_reply', {
         userId: user.id,
@@ -100,13 +102,34 @@ const handleReply = async (req: Request): Promise<Response> => {
         durationMs: Date.now() - startTime,
       });
     } else {
-      // Existing user - add feedback
-      await addFeedback(user.id, sanitizedBody);
+      // Existing user - add feedback to settings
+      await addFeedbackToSettings(user.id, sanitizedBody);
 
       logInfo('feedback_stored', {
         userId: user.id,
         email: from,
         durationMs: Date.now() - startTime,
+      });
+    }
+
+    // Log incoming reply email to database
+    try {
+      await logReplyEmail(
+        user.id,
+        from,
+        to,
+        subject || 'Re: Personifeed Newsletter',
+        sanitizedBody,
+        messageId || 'unknown',
+        inReplyTo || null,
+        references || [],
+      );
+    } catch (dbError) {
+      // Log error but don't fail the processing
+      logError('failed_to_log_reply_email', {
+        userId: user.id,
+        email: from,
+        dbError: dbError instanceof Error ? dbError.message : String(dbError),
       });
     }
 
