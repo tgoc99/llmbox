@@ -17,11 +17,13 @@ import {
   validateRequestMethod,
 } from './requestHandler.ts';
 import { checkOperationThreshold, checkTotalProcessingThreshold } from './performanceMonitor.ts';
+import { saveLLMResponseEmail, saveUserQuery, trackLLMUsage } from './database.ts';
 
 Deno.serve(async (req: Request) => {
   const perf = new PerformanceTracker();
   let messageId = 'unknown';
   let formData: FormData | null = null;
+  let userQueryEmailId: string | undefined;
 
   try {
     // Check request method
@@ -59,6 +61,13 @@ Deno.serve(async (req: Request) => {
     // Check if parsing took longer than 2 seconds
     checkOperationThreshold('webhook_parsing', parsingTime, 2000, email.messageId);
 
+    // Save user query to database (non-blocking, log errors but don't fail)
+    try {
+      userQueryEmailId = await saveUserQuery(email);
+    } catch (_error) {
+      // Already logged in saveUserQuery, continue processing
+    }
+
     // Generate LLM response with error handling
     perf.start('openai_call');
     let llmResponse;
@@ -84,6 +93,13 @@ Deno.serve(async (req: Request) => {
 
       // Check if LLM call took longer than 20 seconds
       checkOperationThreshold('openai_call', llmTime, 20000, email.messageId);
+
+      // Track AI usage (non-blocking)
+      try {
+        await trackLLMUsage(email.from, llmResponse, userQueryEmailId);
+      } catch (_error) {
+        // Already logged in trackLLMUsage, continue processing
+      }
     } catch (error) {
       const llmTime = perf.end('openai_call');
       errorEmail = handleOpenAIError(error, email, llmTime, formData);
@@ -108,6 +124,15 @@ Deno.serve(async (req: Request) => {
 
       // Check if email send took longer than 5 seconds
       checkOperationThreshold('email_send', emailSendTime, 5000, email.messageId);
+
+      // Save outgoing email to database (only if successful LLM response, not error emails)
+      if (!errorEmail && llmResponse && userQueryEmailId) {
+        try {
+          await saveLLMResponseEmail(outgoingEmail, userQueryEmailId);
+        } catch (_error) {
+          // Already logged in saveLLMResponseEmail, continue processing
+        }
+      }
 
       if (errorEmail) {
         logInfo('error_email_sent', {

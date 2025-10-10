@@ -123,3 +123,105 @@ export interface SignupResponse {
   message: string;
   userId?: string;
 }
+
+// ============================================================================
+// DATABASE TYPES (Multi-tenant schema)
+// ============================================================================
+
+/**
+ * Product/subdomain type enum
+ */
+export type ProductType = 'email-webhook' | 'personifeed';
+
+/**
+ * Email direction enum
+ */
+export type EmailDirection = 'inbound' | 'outbound';
+
+/**
+ * Email type enum (extensible)
+ */
+export type EmailType =
+  | 'user_query' // email-webhook: User sends question
+  | 'llm_response' // email-webhook: LLM replies to user
+  | 'newsletter' // personifeed: Daily newsletter
+  | 'feedback_reply' // personifeed: User provides feedback
+  | 'other'; // Future use
+
+/**
+ * Database user entity (shared across all products)
+ */
+export interface DatabaseUser {
+  id: string;
+  email: string;
+  name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Database email entity (tracks all content emails)
+ */
+export interface DatabaseEmail {
+  id: string;
+  user_id: string;
+  product: ProductType;
+  direction: EmailDirection;
+  email_type: EmailType;
+  from_email: string;
+  to_email: string;
+  cc_emails: string[] | null;
+  subject: string | null;
+  raw_content: string | null;
+  processed_content: string | null;
+  html_content: string | null;
+  thread_id: string | null;
+  parent_email_id: string | null;
+  created_at: string;
+  processed_at: string | null;
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Database AI usage entity (token tracking)
+ */
+export interface DatabaseAIUsage {
+  id: string;
+  user_id: string;
+  product: ProductType;
+  related_email_id: string | null;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Database personifeed subscriber entity
+ */
+export interface DatabasePersonifeedSubscriber {
+  id: string;
+  user_id: string;
+  interests: string;
+  is_active: boolean;
+  last_newsletter_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Database personifeed feedback entity
+ */
+export interface DatabasePersonifeedFeedback {
+  id: string;
+  user_id: string;
+  newsletter_email_id: string | null;
+  feedback_type: string;
+  content: string | null;
+  sentiment: string | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}

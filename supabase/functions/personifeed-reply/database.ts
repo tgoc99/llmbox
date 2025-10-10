@@ -1,158 +1,187 @@
 /**
  * Database access layer for personifeed-reply function
+ * Uses new multi-tenant schema with shared database helpers
  */
 
-import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, User } from '../_shared/types.ts';
+import {
+  getPersonifeedSubscriberByUserId,
+  getUserByEmail,
+  getUserById,
+  saveIncomingEmail,
+  savePersonifeedFeedback,
+  upsertPersonifeedSubscriber,
+  upsertUser,
+} from '../_shared/database.ts';
+import type {
+  DatabaseEmail,
+  DatabasePersonifeedFeedback,
+  DatabasePersonifeedSubscriber,
+  DatabaseUser,
+} from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logError, logInfo } from '../_shared/logger.ts';
+import { log, LogLevel } from '../_shared/logger.ts';
+import { config } from '../_shared/config.ts';
 
 /**
- * Get user by ID
+ * Get or create subscriber for a user who replies
+ * (Handles case where someone replies without signing up first)
  */
-export const getUserById = async (userId: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
+export const getOrCreateSubscriber = async (
+  email: string,
+  initialInterests?: string,
+): Promise<{ user: DatabaseUser; subscriber: DatabasePersonifeedSubscriber }> => {
+  try {
+    // Upsert user
+    const user = await upsertUser(email);
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+    // Check if subscriber exists
+    let subscriber = await getPersonifeedSubscriberByUserId(user.id);
 
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserById',
-      userId,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to query user by ID', { userId, error: error.message });
-  }
+    if (!subscriber) {
+      // Create new subscriber with default interests
+      subscriber = await upsertPersonifeedSubscriber({
+        userId: user.id,
+        interests: initialInterests ||
+          'General topics of interest (please provide feedback to customize)',
+        isActive: true,
+      });
 
-  return data as User | null;
-};
+      log(LogLevel.INFO, 'New subscriber created from reply', {
+        userId: user.id,
+        subscriberId: subscriber.id,
+        email,
+      });
+    }
 
-/**
- * Get user by email
- */
-export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
-
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserByEmail',
+    return { user, subscriber };
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to get or create subscriber', {
       email,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to query user', { email, error: error.message });
-  }
-
-  return data as User | null;
-};
-
-/**
- * Create new user
- */
-export const createUser = async (email: string): Promise<User> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email, active: true })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createUser',
+    throw new DatabaseError('Failed to get or create subscriber', {
       email,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to create user', { email, error: error.message });
   }
-
-  logInfo('user_created', { userId: data.id, email });
-  return data as User;
 };
 
 /**
- * Add feedback customization for user
+ * Save feedback email (incoming)
  */
-export const addFeedback = async (userId: string, content: string): Promise<Customization> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
-      content,
-      type: 'feedback',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addFeedback',
+export const saveFeedbackEmail = async (
+  userId: string,
+  fromEmail: string,
+  subject: string,
+  body: string,
+  newsletterEmailId?: string,
+): Promise<DatabaseEmail> => {
+  try {
+    const email = await saveIncomingEmail({
       userId,
-      error: error.message,
+      product: 'personifeed',
+      emailType: 'feedback_reply',
+      fromEmail,
+      toEmail: `personifeed@${config.personifeedEmailDomain}`,
+      subject,
+      rawContent: body,
+      processedContent: body,
+      parentEmailId: newsletterEmailId,
+      metadata: {
+        receivedAt: new Date().toISOString(),
+      },
     });
-    throw new DatabaseError('Failed to add feedback', {
+
+    log(LogLevel.INFO, 'Feedback email saved', {
+      emailId: email.id,
       userId,
-      error: error.message,
+      fromEmail,
+    });
+
+    return email;
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to save feedback email', {
+      userId,
+      fromEmail,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to save feedback email', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('feedback_added', {
-    customizationId: data.id,
-    userId,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };
 
 /**
- * Add initial customization for new user (created from reply)
+ * Save feedback to personifeed_feedback table
  */
-export const addInitialCustomization = async (
+export const saveFeedback = async (
   userId: string,
   content: string,
-): Promise<Customization> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
+  feedbackType: string,
+  sentiment?: string,
+  newsletterEmailId?: string,
+): Promise<DatabasePersonifeedFeedback> => {
+  try {
+    const feedback = await savePersonifeedFeedback({
+      userId,
+      newsletterEmailId,
+      feedbackType,
       content,
-      type: 'initial',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addInitialCustomization',
-      userId,
-      error: error.message,
+      sentiment,
+      metadata: {
+        processedAt: new Date().toISOString(),
+      },
     });
-    throw new DatabaseError('Failed to add initial customization', {
+
+    log(LogLevel.INFO, 'Feedback saved', {
+      feedbackId: feedback.id,
       userId,
-      error: error.message,
+      feedbackType,
+    });
+
+    return feedback;
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to save feedback', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to save feedback', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('initial_customization_added', {
-    customizationId: data.id,
-    userId,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };
+
+/**
+ * Update subscriber interests
+ */
+export const updateSubscriberInterests = async (
+  userId: string,
+  newInterests: string,
+): Promise<void> => {
+  try {
+    await upsertPersonifeedSubscriber({
+      userId,
+      interests: newInterests,
+      isActive: true,
+    });
+
+    log(LogLevel.INFO, 'Subscriber interests updated', {
+      userId,
+      interestsLength: newInterests.length,
+    });
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to update subscriber interests', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to update subscriber interests', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+// Export shared database functions for convenience
+export { getUserByEmail, getUserById };

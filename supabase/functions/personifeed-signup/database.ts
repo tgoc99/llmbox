@@ -1,101 +1,77 @@
 /**
  * Database access layer for personifeed-signup function
+ * Uses new multi-tenant schema with shared database helpers
  */
 
-import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, User } from '../_shared/types.ts';
+import {
+  getPersonifeedSubscriberByUserId,
+  upsertPersonifeedSubscriber,
+  upsertUser,
+} from '../_shared/database.ts';
+import type { DatabasePersonifeedSubscriber, DatabaseUser } from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logError, logInfo } from '../_shared/logger.ts';
+import { log, LogLevel } from '../_shared/logger.ts';
 
 /**
- * Get user by email
+ * Create or get user and subscriber
+ * Returns both user and subscriber (creates subscriber with interests)
  */
-export const getUserByEmail = async (email: string): Promise<User | null> => {
-  const supabase = getSupabaseClient();
+export const createOrGetSubscriber = async (
+  email: string,
+  interests: string,
+): Promise<{ user: DatabaseUser; subscriber: DatabasePersonifeedSubscriber }> => {
+  try {
+    // Upsert user (creates if doesn't exist)
+    const user = await upsertUser(email);
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
+    // Check if subscriber already exists
+    const existingSubscriber = await getPersonifeedSubscriberByUserId(user.id);
 
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserByEmail',
-      email,
-      error: error.message,
+    if (existingSubscriber) {
+      // User already signed up
+      log(LogLevel.INFO, 'User already subscribed', { userId: user.id, email });
+      return { user, subscriber: existingSubscriber };
+    }
+
+    // Create new subscriber with interests
+    const subscriber = await upsertPersonifeedSubscriber({
+      userId: user.id,
+      interests,
+      isActive: true,
     });
-    throw new DatabaseError('Failed to query user', { email, error: error.message });
-  }
 
-  return data as User | null;
+    log(LogLevel.INFO, 'New subscriber created', {
+      userId: user.id,
+      subscriberId: subscriber.id,
+      email,
+    });
+
+    return { user, subscriber };
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to create or get subscriber', {
+      email,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to create or get subscriber', {
+      email,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 };
 
 /**
- * Create new user
+ * Check if user is already subscribed
  */
-export const createUser = async (email: string): Promise<User> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ email, active: true })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createUser',
+export const isUserSubscribed = async (email: string): Promise<boolean> => {
+  try {
+    const user = await upsertUser(email);
+    const subscriber = await getPersonifeedSubscriberByUserId(user.id);
+    return subscriber !== null && subscriber.is_active;
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to check if user is subscribed', {
       email,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to create user', { email, error: error.message });
+    return false;
   }
-
-  logInfo('user_created', { userId: data.id, email });
-  return data as User;
-};
-
-/**
- * Add customization for user
- */
-export const addCustomization = async (
-  userId: string,
-  content: string,
-  type: 'initial' | 'feedback',
-): Promise<Customization> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .insert({
-      user_id: userId,
-      content,
-      type,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'addCustomization',
-      userId,
-      type,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to add customization', {
-      userId,
-      type,
-      error: error.message,
-    });
-  }
-
-  logInfo('customization_added', {
-    customizationId: data.id,
-    userId,
-    type,
-    contentLength: content.length,
-  });
-
-  return data as Customization;
 };
