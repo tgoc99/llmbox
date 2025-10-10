@@ -57,8 +57,8 @@ Deno.test('migrations - files are numbered sequentially', async () => {
   );
 });
 
-Deno.test('migrations - personifeed schema exists and is valid SQL', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - multi_tenant schema exists and is valid SQL', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_multi_tenant_schema.sql`;
 
   const content = await Deno.readTextFile(schemaFile);
 
@@ -73,19 +73,19 @@ Deno.test('migrations - personifeed schema exists and is valid SQL', async () =>
     'Should create users table',
   );
   assertEquals(
-    content.includes('newsletters'),
+    content.includes('emails'),
     true,
-    'Should create newsletters table',
+    'Should create emails table',
   );
   assertEquals(
-    content.includes('customizations'),
+    content.includes('personifeed_subscribers'),
     true,
-    'Should create customizations table',
+    'Should create personifeed_subscribers table',
   );
 });
 
-Deno.test('migrations - personifeed schema has proper indexes', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - multi_tenant schema has proper indexes', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_multi_tenant_schema.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for performance indexes
@@ -97,8 +97,8 @@ Deno.test('migrations - personifeed schema has proper indexes', async () => {
   );
 });
 
-Deno.test('migrations - personifeed schema has foreign keys', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - multi_tenant schema has foreign keys', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_multi_tenant_schema.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for foreign key relationships
@@ -110,17 +110,17 @@ Deno.test('migrations - personifeed schema has foreign keys', async () => {
 });
 
 Deno.test('migrations - personifeed schema has constraints', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_multi_tenant_schema.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for NOT NULL constraints
   assertEquals(content.includes('NOT NULL'), true, 'Should have NOT NULL constraints');
 
-  // Check for CHECK constraints
+  // Check for type safety via ENUMs (which are better than CHECK constraints)
   assertEquals(
-    content.includes('CHECK') || content.includes('CONSTRAINT'),
+    content.includes('product_type') && content.includes('email_direction'),
     true,
-    'Should have CHECK constraints for data validation',
+    'Should have enum types for data validation',
   );
 });
 

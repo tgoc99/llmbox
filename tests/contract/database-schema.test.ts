@@ -8,9 +8,10 @@ import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert
  * - Column names
  * - Column types
  * - Relationships
+ * - Multi-tenant architecture
  */
 
-const SCHEMA_FILE = './supabase/migrations/20251009000000_personifeed_schema.sql';
+const SCHEMA_FILE = './supabase/migrations/20251010000000_multi_tenant_schema.sql';
 
 Deno.test('schema-contract - users table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
@@ -29,8 +30,9 @@ Deno.test('schema-contract - users has expected columns', async () => {
   const expectedColumns = [
     'id',
     'email',
-    'active',
+    'name',
     'created_at',
+    'updated_at',
   ];
 
   for (const column of expectedColumns) {
@@ -42,65 +44,101 @@ Deno.test('schema-contract - users has expected columns', async () => {
   }
 });
 
-Deno.test('schema-contract - newsletters table exists', async () => {
+Deno.test('schema-contract - emails table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   assertEquals(
-    content.includes('newsletters'),
+    content.includes('emails'),
     true,
-    'newsletters table should be defined',
+    'emails table should be defined',
   );
 });
 
-Deno.test('schema-contract - newsletters has expected columns', async () => {
+Deno.test('schema-contract - emails has expected columns', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   const expectedColumns = [
     'id',
     'user_id',
-    'content',
-    'sent_at',
-    'status',
+    'product',
+    'direction',
+    'email_type',
+    'from_email',
+    'to_email',
+    'subject',
+    'raw_content',
+    'processed_content',
+    'html_content',
+    'thread_id',
+    'parent_email_id',
     'created_at',
+    'processed_at',
+    'metadata',
   ];
 
   for (const column of expectedColumns) {
     assertEquals(
       content.includes(column),
       true,
-      `newsletters should have ${column} column`,
+      `emails should have ${column} column`,
     );
   }
 });
 
-Deno.test('schema-contract - customizations table exists', async () => {
+Deno.test('schema-contract - ai_usage table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   assertEquals(
-    content.includes('customizations'),
+    content.includes('ai_usage'),
     true,
-    'customizations table should be defined',
+    'ai_usage table should be defined',
   );
 });
 
-Deno.test('schema-contract - customizations has expected columns', async () => {
+Deno.test('schema-contract - ai_usage has expected columns', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   const expectedColumns = [
     'id',
     'user_id',
-    'type',
-    'content',
+    'product',
+    'related_email_id',
+    'model',
+    'prompt_tokens',
+    'completion_tokens',
+    'total_tokens',
+    'estimated_cost_usd',
     'created_at',
+    'metadata',
   ];
 
   for (const column of expectedColumns) {
     assertEquals(
       content.includes(column),
       true,
-      `customizations should have ${column} column`,
+      `ai_usage should have ${column} column`,
     );
   }
+});
+
+Deno.test('schema-contract - personifeed_subscribers table exists', async () => {
+  const content = await Deno.readTextFile(SCHEMA_FILE);
+
+  assertEquals(
+    content.includes('personifeed_subscribers'),
+    true,
+    'personifeed_subscribers table should be defined',
+  );
+});
+
+Deno.test('schema-contract - personifeed_feedback table exists', async () => {
+  const content = await Deno.readTextFile(SCHEMA_FILE);
+
+  assertEquals(
+    content.includes('personifeed_feedback'),
+    true,
+    'personifeed_feedback table should be defined',
+  );
 });
 
 Deno.test('schema-contract - UUID columns use uuid type', async () => {
@@ -149,20 +187,47 @@ Deno.test('schema-contract - email column has proper type', async () => {
 Deno.test('schema-contract - boolean columns use BOOLEAN type', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  // Find active column
-  const usersTableMatch = content.match(
-    /CREATE TABLE.*?users.*?\([\s\S]*?\);/i,
+  // Find is_active column in personifeed_subscribers
+  const subscribersTableMatch = content.match(
+    /CREATE TABLE.*?personifeed_subscribers.*?\([\s\S]*?\);/i,
   );
 
-  const usersTable = usersTableMatch![0];
-  const activeLine = usersTable.split('\n').find((line) => line.includes('active'));
+  if (subscribersTableMatch) {
+    const subscribersTable = subscribersTableMatch[0];
+    const activeLine = subscribersTable.split('\n').find((line) => line.includes('is_active'));
 
-  assertExists(activeLine, 'Should have active column');
+    assertExists(activeLine, 'Should have is_active column');
+    assertEquals(
+      activeLine.toUpperCase().includes('BOOLEAN') ||
+        activeLine.toUpperCase().includes('BOOL'),
+      true,
+      'is_active should be BOOLEAN type',
+    );
+  }
+});
+
+Deno.test('schema-contract - enums are defined for multi-tenant', async () => {
+  const content = await Deno.readTextFile(SCHEMA_FILE);
+
+  // Should have product_type enum
   assertEquals(
-    activeLine.toUpperCase().includes('BOOLEAN') ||
-      activeLine.toUpperCase().includes('BOOL'),
+    content.includes('CREATE TYPE product_type'),
     true,
-    'active should be BOOLEAN type',
+    'Should have product_type enum',
+  );
+
+  // Should have email_direction enum
+  assertEquals(
+    content.includes('CREATE TYPE email_direction'),
+    true,
+    'Should have email_direction enum',
+  );
+
+  // Should have email_type enum
+  assertEquals(
+    content.includes('CREATE TYPE email_type'),
+    true,
+    'Should have email_type enum',
   );
 });
 
@@ -189,7 +254,13 @@ Deno.test('schema-contract - table names follow naming convention', async () => 
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   // Check that expected tables exist
-  const expectedTables = ['users', 'customizations', 'newsletters'];
+  const expectedTables = [
+    'users',
+    'emails',
+    'ai_usage',
+    'personifeed_subscribers',
+    'personifeed_feedback',
+  ];
   const tableMatches = content.matchAll(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(\w+)/gi);
 
   const foundTables = [];

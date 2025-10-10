@@ -5,60 +5,58 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
-import { createNewsletter, getAllActiveUsers, getUserCustomizations } from './database.ts';
+import {
+  getAllActiveSubscribers,
+  saveNewsletterEmail,
+  type SubscriberWithUser,
+} from './database.ts';
 import { generateNewsletterContent } from './newsletterGenerator.ts';
 import { sendNewsletterEmail as sendNewsletter } from '../_shared/emailSender.ts';
 
 /**
- * Process a single user: generate newsletter and send email
+ * Process a single subscriber: generate newsletter and send email
  */
-const processUser = async (user: { id: string; email: string }): Promise<boolean> => {
-  try {
-    // Fetch user customizations
-    const customizations = await getUserCustomizations(user.id);
+const processSubscriber = async (
+  subscriberData: SubscriberWithUser,
+): Promise<boolean> => {
+  const { user, subscriber, feedback } = subscriberData;
 
-    if (customizations.length === 0) {
-      logError('no_customizations_found', {
+  try {
+    if (!subscriber.interests) {
+      logError('no_interests_found', {
         userId: user.id,
         email: user.email,
-        message: 'User has no customizations stored',
+        message: 'Subscriber has no interests stored',
       });
       return false;
     }
 
-    // Generate newsletter content
+    // Generate newsletter content with interests and feedback
     const content = await generateNewsletterContent(
-      { ...user, active: true, created_at: new Date() },
-      customizations,
+      user,
+      subscriber.interests,
+      feedback,
     );
 
-    // Create newsletter record in database (status: pending)
-    const newsletter = await createNewsletter(user.id, content, 'sent');
-
-    // Send email
+    // Send email first
     await sendNewsletter(user.id, user.email, content);
 
-    logInfo('user_processed_successfully', {
+    // Save to database (with html content if available)
+    const savedEmail = await saveNewsletterEmail(user.id, user.email, content, content);
+
+    // Track AI usage (token tracking happens in newsletter generator)
+    // Note: We'll need to update this when we have token data from the generator
+    // await trackNewsletterAIUsage(user.id, savedEmail.id, 'gpt-4o-mini', 0, 0, 0);
+
+    logInfo('subscriber_processed_successfully', {
       userId: user.id,
       email: user.email,
-      newsletterId: newsletter.id,
+      emailId: savedEmail.id,
     });
 
     return true;
   } catch (error) {
-    // Create failed newsletter record
-    try {
-      await createNewsletter(user.id, '', 'failed');
-    } catch (dbError) {
-      logError('failed_to_record_failure', {
-        userId: user.id,
-        email: user.email,
-        dbError: dbError instanceof Error ? dbError.message : String(dbError),
-        dbStack: dbError instanceof Error ? dbError.stack : undefined,
-      });
-    }
-
-    logError('user_processing_failed', {
+    logError('subscriber_processing_failed', {
       userId: user.id,
       email: user.email,
       error: error instanceof Error ? error.message : String(error),
@@ -80,24 +78,24 @@ const handleCron = async (): Promise<Response> => {
       timestamp: new Date().toISOString(),
     });
 
-    // Fetch all active users
-    const users = await getAllActiveUsers();
+    // Fetch all active subscribers
+    const subscribers = await getAllActiveSubscribers();
 
-    logInfo('users_fetched', {
-      count: users.length,
+    logInfo('subscribers_fetched', {
+      count: subscribers.length,
     });
 
-    if (users.length === 0) {
-      logInfo('no_active_users', {
+    if (subscribers.length === 0) {
+      logInfo('no_active_subscribers', {
         durationMs: Date.now() - startTime,
       });
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'No active users to process',
+          message: 'No active subscribers to process',
           stats: {
-            totalUsers: 0,
+            totalSubscribers: 0,
             successCount: 0,
             failureCount: 0,
           },
@@ -109,17 +107,17 @@ const handleCron = async (): Promise<Response> => {
       );
     }
 
-    // Process each user
+    // Process each subscriber
     let successCount = 0;
     let failureCount = 0;
 
-    // Process users in parallel (10 at a time to avoid overwhelming APIs)
+    // Process subscribers in parallel (10 at a time to avoid overwhelming APIs)
     const batchSize = 10;
-    for (let i = 0; i < users.length; i += batchSize) {
-      const batch = users.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(processUser));
+    for (let i = 0; i < subscribers.length; i += batchSize) {
+      const batch = subscribers.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(processSubscriber));
 
-      results.forEach((success) => {
+      results.forEach((success: boolean) => {
         if (success) {
           successCount++;
         } else {
@@ -131,11 +129,11 @@ const handleCron = async (): Promise<Response> => {
     const duration = Date.now() - startTime;
 
     logInfo('cron_completed', {
-      totalUsers: users.length,
+      totalSubscribers: subscribers.length,
       successCount,
       failureCount,
       durationMs: duration,
-      successRate: ((successCount / users.length) * 100).toFixed(2) + '%',
+      successRate: ((successCount / subscribers.length) * 100).toFixed(2) + '%',
     });
 
     return new Response(
@@ -143,7 +141,7 @@ const handleCron = async (): Promise<Response> => {
         success: true,
         message: 'Cron job completed',
         stats: {
-          totalUsers: users.length,
+          totalSubscribers: subscribers.length,
           successCount,
           failureCount,
           durationMs: duration,

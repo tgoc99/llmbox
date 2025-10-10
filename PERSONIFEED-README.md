@@ -22,7 +22,8 @@ from a unique dynamic address (`reply+{userId}@mail.llmbox.pro`) for efficient r
 Built on the llmbox foundation with:
 
 - **Backend**: Supabase Edge Functions (Deno + TypeScript)
-- **Database**: Supabase PostgreSQL (users, customizations, newsletters)
+- **Database**: Supabase PostgreSQL (multi-tenant: users, emails, ai_usage, personifeed_subscribers,
+  personifeed_feedback)
 - **LLM**: OpenAI API (gpt-4o-mini)
 - **Email**: SendGrid (inbound + outbound)
 - **Web**: Next.js 14 + React + TailwindCSS (deployed to Vercel)
@@ -63,7 +64,7 @@ llmbox/
 │   │       ├── personifeed-cron-test.ts
 │   │       └── personifeed-reply-test.ts
 │   └── migrations/
-│       └── 20251009000000_personifeed_schema.sql
+│       └── 20251010000000_multi_tenant_schema.sql
 ├── web/
 │   └── app/
 │       └── personifeed/
@@ -184,37 +185,78 @@ deno task trigger:cron
 - Day 2: Reply with feedback → verify confirmation email
 - Day 3 @ 11am ET: Verify updated newsletter with feedback incorporated
 
-## 📊 Database Schema
+## 📊 Database Schema (Multi-Tenant)
 
-### users
+### Core Tables (Shared)
 
-| Column     | Type      | Description                    |
-| ---------- | --------- | ------------------------------ |
-| id         | UUID      | Primary key                    |
-| email      | VARCHAR   | User email (unique)            |
-| created_at | TIMESTAMP | Signup timestamp               |
-| active     | BOOLEAN   | Newsletter subscription status |
+#### users
 
-### customizations
+| Column     | Type      | Description                       |
+| ---------- | --------- | --------------------------------- |
+| id         | UUID      | Primary key                       |
+| email      | VARCHAR   | User email (unique across system) |
+| name       | VARCHAR   | Optional display name             |
+| created_at | TIMESTAMP | Signup timestamp                  |
+| updated_at | TIMESTAMP | Last updated                      |
 
-| Column     | Type      | Description                         |
-| ---------- | --------- | ----------------------------------- |
-| id         | UUID      | Primary key                         |
-| user_id    | UUID      | Foreign key to users                |
-| content    | TEXT      | Prompt or feedback (max 2000 chars) |
-| type       | VARCHAR   | 'initial' or 'feedback'             |
-| created_at | TIMESTAMP | Creation timestamp                  |
+#### emails
 
-### newsletters
+| Column      | Type      | Description                                      |
+| ----------- | --------- | ------------------------------------------------ |
+| id          | UUID      | Primary key                                      |
+| user_id     | UUID      | Foreign key to users                             |
+| product     | ENUM      | 'email-webhook' or 'personifeed'                 |
+| direction   | ENUM      | 'inbound' or 'outbound'                          |
+| email_type  | ENUM      | 'user_query', 'llm_response', 'newsletter', etc. |
+| from_email  | VARCHAR   | Sender email                                     |
+| to_email    | VARCHAR   | Recipient email                                  |
+| subject     | TEXT      | Email subject                                    |
+| raw_content | TEXT      | Original content                                 |
+| thread_id   | VARCHAR   | Email thread identifier                          |
+| created_at  | TIMESTAMP | Email timestamp                                  |
+| metadata    | JSONB     | Flexible additional data                         |
 
-| Column     | Type      | Description                         |
-| ---------- | --------- | ----------------------------------- |
-| id         | UUID      | Primary key                         |
-| user_id    | UUID      | Foreign key to users                |
-| content    | TEXT      | Generated newsletter content        |
-| sent_at    | TIMESTAMP | Delivery timestamp (null if failed) |
-| status     | VARCHAR   | 'pending', 'sent', or 'failed'      |
-| created_at | TIMESTAMP | Generation timestamp                |
+#### ai_usage
+
+| Column             | Type      | Description                  |
+| ------------------ | --------- | ---------------------------- |
+| id                 | UUID      | Primary key                  |
+| user_id            | UUID      | Foreign key to users         |
+| product            | ENUM      | Product that consumed tokens |
+| related_email_id   | UUID      | Optional link to email       |
+| model              | VARCHAR   | AI model used                |
+| prompt_tokens      | INTEGER   | Input tokens                 |
+| completion_tokens  | INTEGER   | Output tokens                |
+| total_tokens       | INTEGER   | Total tokens                 |
+| estimated_cost_usd | DECIMAL   | Estimated cost               |
+| created_at         | TIMESTAMP | Usage timestamp              |
+
+### Product-Specific Tables (Personifeed)
+
+#### personifeed_subscribers
+
+| Column                  | Type      | Description                   |
+| ----------------------- | --------- | ----------------------------- |
+| id                      | UUID      | Primary key                   |
+| user_id                 | UUID      | Foreign key to users (unique) |
+| interests               | TEXT      | User interests                |
+| is_active               | BOOLEAN   | Subscription status           |
+| last_newsletter_sent_at | TIMESTAMP | Last send timestamp           |
+| created_at              | TIMESTAMP | Subscription timestamp        |
+| updated_at              | TIMESTAMP | Last updated                  |
+
+#### personifeed_feedback
+
+| Column              | Type      | Description                       |
+| ------------------- | --------- | --------------------------------- |
+| id                  | UUID      | Primary key                       |
+| user_id             | UUID      | Foreign key to users              |
+| newsletter_email_id | UUID      | Optional link to newsletter email |
+| feedback_type       | VARCHAR   | Type of feedback                  |
+| content             | TEXT      | Feedback content                  |
+| sentiment           | VARCHAR   | Optional sentiment analysis       |
+| created_at          | TIMESTAMP | Feedback timestamp                |
+| metadata            | JSONB     | Flexible additional data          |
 
 ## 🔄 User Journey
 

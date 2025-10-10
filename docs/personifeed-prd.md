@@ -207,7 +207,7 @@ llmbox/  (monorepo)
 │   │   ├── personifeed-cron/
 │   │   └── personifeed-reply/
 │   └── migrations/
-│       └── 20251009000000_personifeed_schema.sql
+│       └── 20251010000000_multi_tenant_schema.sql
 └── web/
     └── app/
         └── personifeed/
@@ -216,41 +216,21 @@ llmbox/  (monorepo)
 
 ### Database Schema
 
-**Users:**
+**Note:** Personifeed now uses a **multi-tenant database schema** shared with other LLMBox products.
+See `docs/multi-tenant-database.md` for complete schema documentation.
 
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  active BOOLEAN DEFAULT TRUE
-);
-```
+**Core tables (shared):**
 
-**Customizations:**
+- `users` - Single source of truth for all email addresses
+- `emails` - All sent/received emails (newsletters stored as `email_type = 'newsletter'`)
+- `ai_usage` - Token consumption tracking per user per product
 
-```sql
-CREATE TABLE customizations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  type VARCHAR(20) CHECK (type IN ('initial', 'feedback')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+**Personifeed-specific tables:**
 
-**Newsletters:**
+- `personifeed_subscribers` - Subscriber interests and status
+- `personifeed_feedback` - User feedback and customizations
 
-```sql
-CREATE TABLE newsletters (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  sent_at TIMESTAMP WITH TIME ZONE,
-  status VARCHAR(20) CHECK (status IN ('pending', 'sent', 'failed')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+For detailed schema, see: `supabase/migrations/20251010000000_multi_tenant_schema.sql`
 
 ### Dynamic Reply Addresses
 

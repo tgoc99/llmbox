@@ -1,146 +1,187 @@
 /**
  * Database access layer for personifeed-cron function
+ * Uses new multi-tenant schema with shared database helpers
  */
 
-import { getSupabaseClient } from '../_shared/supabaseClient.ts';
-import type { Customization, Newsletter, User } from '../_shared/types.ts';
+import {
+  getActivePersonifeedSubscribers,
+  getPersonifeedFeedbackByUserId,
+  getPersonifeedSubscriberByUserId,
+  getUserById,
+  saveOutgoingEmail,
+  trackAIUsage,
+  updateLastNewsletterSent,
+} from '../_shared/database.ts';
+import type {
+  DatabaseEmail,
+  DatabasePersonifeedFeedback,
+  DatabasePersonifeedSubscriber,
+  DatabaseUser,
+} from '../_shared/types.ts';
 import { DatabaseError } from '../_shared/errors.ts';
-import { logError, logInfo } from '../_shared/logger.ts';
+import { log, LogLevel } from '../_shared/logger.ts';
+import { config } from '../_shared/config.ts';
 
 /**
- * Get all active users
+ * Subscriber with user details for newsletter generation
  */
-export const getAllActiveUsers = async (): Promise<User[]> => {
-  const supabase = getSupabaseClient();
+export interface SubscriberWithUser {
+  subscriber: DatabasePersonifeedSubscriber;
+  user: DatabaseUser;
+  feedback: DatabasePersonifeedFeedback[];
+}
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('active', true)
-    .order('created_at', { ascending: true });
+/**
+ * Get all active subscribers with their user details and feedback
+ */
+export const getAllActiveSubscribers = async (): Promise<SubscriberWithUser[]> => {
+  try {
+    const subscribers = await getActivePersonifeedSubscribers();
 
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getAllActiveUsers',
-      error: error.message,
+    // Fetch user details and feedback for each subscriber
+    const subscribersWithDetails = await Promise.all(
+      subscribers.map(async (subscriber) => {
+        const user = await getUserById(subscriber.user_id);
+        if (!user) {
+          log(LogLevel.WARN, 'Subscriber has no associated user', { subscriberId: subscriber.id });
+          throw new Error(`User not found for subscriber ${subscriber.id}`);
+        }
+
+        const feedback = await getPersonifeedFeedbackByUserId(subscriber.user_id);
+
+        return {
+          subscriber,
+          user,
+          feedback,
+        };
+      }),
+    );
+
+    log(LogLevel.INFO, 'Fetched active subscribers', { count: subscribersWithDetails.length });
+    return subscribersWithDetails;
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to fetch active subscribers', {
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to fetch active users', { error: error.message });
+    throw new DatabaseError('Failed to fetch active subscribers', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
-
-  return (data as User[]) || [];
 };
 
 /**
- * Get all customizations for a user
+ * Get subscriber interests and feedback for newsletter generation
  */
-export const getUserCustomizations = async (userId: string): Promise<Customization[]> => {
-  const supabase = getSupabaseClient();
-
-  const { data, error } = await supabase
-    .from('customizations')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    logError('database_query_failed', {
-      operation: 'getUserCustomizations',
-      userId,
-      error: error.message,
-    });
-    throw new DatabaseError('Failed to fetch user customizations', {
-      userId,
-      error: error.message,
-    });
-  }
-
-  return (data as Customization[]) || [];
-};
-
-/**
- * Create newsletter record
- */
-export const createNewsletter = async (
+export const getSubscriberContext = async (
   userId: string,
-  content: string,
-  status: 'pending' | 'sent' | 'failed',
-): Promise<Newsletter> => {
-  const supabase = getSupabaseClient();
+): Promise<{ interests: string; feedback: DatabasePersonifeedFeedback[] }> => {
+  try {
+    const subscriber = await getPersonifeedSubscriberByUserId(userId);
+    if (!subscriber) {
+      throw new Error(`Subscriber not found for user ${userId}`);
+    }
 
-  const newsletterData: {
-    user_id: string;
-    content: string;
-    status: string;
-    sent_at?: string;
-  } = {
-    user_id: userId,
-    content,
-    status,
-  };
+    const feedback = await getPersonifeedFeedbackByUserId(userId);
 
-  // Add sent_at timestamp if status is 'sent'
-  if (status === 'sent') {
-    newsletterData.sent_at = new Date().toISOString();
-  }
-
-  const { data, error } = await supabase
-    .from('newsletters')
-    .insert(newsletterData)
-    .select()
-    .single();
-
-  if (error) {
-    logError('database_insert_failed', {
-      operation: 'createNewsletter',
+    return {
+      interests: subscriber.interests,
+      feedback,
+    };
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to get subscriber context', {
       userId,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
-    throw new DatabaseError('Failed to create newsletter', {
+    throw new DatabaseError('Failed to get subscriber context', {
       userId,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  return data as Newsletter;
 };
 
 /**
- * Update newsletter status
+ * Save newsletter as email in database
  */
-export const updateNewsletterStatus = async (
-  newsletterId: string,
-  status: 'sent' | 'failed',
+export const saveNewsletterEmail = async (
+  userId: string,
+  userEmail: string,
+  content: string,
+  htmlContent: string,
+): Promise<DatabaseEmail> => {
+  try {
+    const email = await saveOutgoingEmail({
+      userId,
+      product: 'personifeed',
+      emailType: 'newsletter',
+      fromEmail: `personifeed@${config.personifeedEmailDomain}`,
+      toEmail: userEmail,
+      subject: 'Your Daily Personifeed Newsletter',
+      processedContent: content,
+      htmlContent,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+      },
+    });
+
+    // Update last newsletter sent timestamp
+    await updateLastNewsletterSent(userId);
+
+    log(LogLevel.INFO, 'Newsletter email saved', {
+      emailId: email.id,
+      userId,
+      userEmail,
+    });
+
+    return email;
+  } catch (error) {
+    log(LogLevel.ERROR, 'Failed to save newsletter email', {
+      userId,
+      userEmail,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new DatabaseError('Failed to save newsletter email', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+/**
+ * Track AI usage for newsletter generation
+ */
+export const trackNewsletterAIUsage = async (
+  userId: string,
+  emailId: string,
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+  totalTokens: number,
 ): Promise<void> => {
-  const supabase = getSupabaseClient();
-
-  const updateData: {
-    status: string;
-    sent_at?: string;
-  } = { status };
-
-  // Add sent_at timestamp if status is 'sent'
-  if (status === 'sent') {
-    updateData.sent_at = new Date().toISOString();
-  }
-
-  const { error } = await supabase
-    .from('newsletters')
-    .update(updateData)
-    .eq('id', newsletterId);
-
-  if (error) {
-    logError('database_update_failed', {
-      operation: 'updateNewsletterStatus',
-      newsletterId,
-      status,
-      error: error.message,
+  try {
+    await trackAIUsage({
+      userId,
+      product: 'personifeed',
+      relatedEmailId: emailId,
+      model,
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      metadata: {
+        type: 'newsletter_generation',
+      },
     });
-    throw new DatabaseError('Failed to update newsletter status', {
-      newsletterId,
-      status,
-      error: error.message,
+
+    log(LogLevel.DEBUG, 'Newsletter AI usage tracked', {
+      userId,
+      emailId,
+      totalTokens,
+    });
+  } catch (error) {
+    // Log but don't throw - tracking is nice-to-have
+    log(LogLevel.WARN, 'Failed to track newsletter AI usage', {
+      userId,
+      emailId,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
-
-  logInfo('newsletter_status_updated', { newsletterId, status });
 };

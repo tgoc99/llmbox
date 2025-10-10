@@ -8,7 +8,7 @@ import { corsHeaders, handlePreflight } from '../_shared/cors.ts';
 import { logInfo } from '../_shared/logger.ts';
 import { handleError } from '../_shared/errors.ts';
 import type { SignupRequest, SignupResponse } from '../_shared/types.ts';
-import { addCustomization, createUser, getUserByEmail } from './database.ts';
+import { createOrGetSubscriber } from './database.ts';
 import { sanitizePrompt, validateEmail, validatePrompt } from './validation.ts';
 
 /**
@@ -37,15 +37,20 @@ const handleSignup = async (req: Request): Promise<Response> => {
       promptLength: sanitizedPrompt.length,
     });
 
-    // Check if user already exists
-    let user = await getUserByEmail(sanitizedEmail);
+    // Create or get subscriber (interests = initial prompt)
+    const { user, subscriber } = await createOrGetSubscriber(
+      sanitizedEmail,
+      sanitizedPrompt,
+    );
 
-    if (user) {
-      // User exists - add new initial customization
-      await addCustomization(user.id, sanitizedPrompt, 'initial');
+    // Check if this was an existing active subscriber
+    const isExistingSubscriber = subscriber.created_at !== subscriber.updated_at ||
+      subscriber.interests !== sanitizedPrompt;
 
+    if (isExistingSubscriber) {
       logInfo('signup_existing_user', {
         userId: user.id,
+        subscriberId: subscriber.id,
         email: sanitizedEmail,
         durationMs: Date.now() - startTime,
       });
@@ -63,12 +68,10 @@ const handleSignup = async (req: Request): Promise<Response> => {
       });
     }
 
-    // New user - create user and add initial customization
-    user = await createUser(sanitizedEmail);
-    await addCustomization(user.id, sanitizedPrompt, 'initial');
-
+    // New subscriber
     logInfo('signup_new_user', {
       userId: user.id,
+      subscriberId: subscriber.id,
       email: sanitizedEmail,
       durationMs: Date.now() - startTime,
     });

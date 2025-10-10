@@ -7,13 +7,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
 import { ValidationError } from '../_shared/errors.ts';
 import { parseReplyEmail } from './emailParser.ts';
-import {
-  addFeedback,
-  addInitialCustomization,
-  createUser,
-  getUserByEmail,
-  getUserById,
-} from './database.ts';
+import { getOrCreateSubscriber, saveFeedback, saveFeedbackEmail } from './database.ts';
 import { sendConfirmationEmail } from '../_shared/emailSender.ts';
 
 /**
@@ -71,47 +65,44 @@ const handleReply = async (req: Request): Promise<Response> => {
 
     const sanitizedBody = body.trim();
 
-    // Try to get user by userId from TO address first (more efficient)
-    let user = userId ? await getUserById(userId) : null;
+    // Get or create subscriber (handles both new and existing users)
+    const { user, subscriber } = await getOrCreateSubscriber(from);
 
-    // Fallback to looking up by email if userId not found or doesn't match
-    if (!user || user.email !== from) {
-      logInfo('user_lookup_fallback', {
-        userId,
-        from,
-        reason: !user ? 'userId_not_found' : 'email_mismatch',
-      });
+    const isNewSubscriber = subscriber.created_at === subscriber.updated_at;
 
-      user = await getUserByEmail(from);
-    }
+    // Save the incoming feedback email to database
+    await saveFeedbackEmail(user.id, from, to, sanitizedBody);
 
-    if (!user) {
-      // New user - create user and add initial customization
-      logInfo('reply_from_new_user', {
-        email: from,
-      });
+    // Save feedback to personifeed_feedback table
+    await saveFeedback(
+      user.id,
+      sanitizedBody,
+      isNewSubscriber ? 'initial_interests' : 'customization',
+    );
 
-      user = await createUser(from);
-      await addInitialCustomization(user.id, sanitizedBody);
-
-      logInfo('new_user_created_from_reply', {
+    if (isNewSubscriber) {
+      logInfo('new_subscriber_created_from_reply', {
         userId: user.id,
+        subscriberId: subscriber.id,
         email: from,
         durationMs: Date.now() - startTime,
+      });
+
+      // Send confirmation email for new subscribers
+      await sendConfirmationEmail(user.id, from, messageId || undefined);
+
+      logInfo('confirmation_email_sent', {
+        userId: user.id,
+        email: from,
       });
     } else {
-      // Existing user - add feedback
-      await addFeedback(user.id, sanitizedBody);
-
-      logInfo('feedback_stored', {
+      logInfo('feedback_stored_for_existing_subscriber', {
         userId: user.id,
+        subscriberId: subscriber.id,
         email: from,
         durationMs: Date.now() - startTime,
       });
     }
-
-    // Send confirmation email with userId for dynamic reply address
-    await sendConfirmationEmail(user.id, from, messageId || undefined);
 
     logInfo('reply_processed_successfully', {
       userId: user.id,

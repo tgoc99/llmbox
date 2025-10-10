@@ -93,3 +93,13 @@ export const config = {
     return getEnvVar('SUPABASE_SERVICE_ROLE_KEY', true);
   },
 };
+
+/**
+ * Helper function to get Supabase URL
+ */
+export const getSupabaseUrl = (): string => config.supabaseUrl;
+
+/**
+ * Helper function to get Supabase service role key
+ */
+export const getSupabaseServiceKey = (): string => config.supabaseServiceRoleKey;

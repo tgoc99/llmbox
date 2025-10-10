@@ -11,7 +11,7 @@ import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
  */
 
 const MIGRATIONS_DIR = './supabase/migrations';
-const SCHEMA_FILE = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+const SCHEMA_FILE = `${MIGRATIONS_DIR}/20251010000000_multi_tenant_schema.sql`;
 
 Deno.test('constraints - users table has email NOT NULL', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
@@ -52,22 +52,22 @@ Deno.test('constraints - users table has unique email constraint', async () => {
   );
 });
 
-Deno.test('constraints - users has default for active', async () => {
+Deno.test('constraints - personifeed_subscribers has default for is_active', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  const usersTableMatch = content.match(
-    /CREATE TABLE.*?users.*?\([\s\S]*?\);/i,
+  const subscribersTableMatch = content.match(
+    /CREATE TABLE.*?personifeed_subscribers.*?\([\s\S]*?\);/i,
   );
 
-  const usersTable = usersTableMatch![0];
+  const subscribersTable = subscribersTableMatch![0];
 
-  // Check active has default value
-  const activeLine = usersTable.split('\n').find((line) => line.includes('active'));
+  // Check is_active has default value
+  const activeLine = subscribersTable.split('\n').find((line) => line.includes('is_active'));
 
   assertEquals(
     activeLine?.toUpperCase().includes('DEFAULT'),
     true,
-    'active should have DEFAULT value',
+    'is_active should have DEFAULT value',
   );
 });
 
@@ -90,51 +90,75 @@ Deno.test('constraints - users has timestamps with defaults', async () => {
   );
 });
 
-Deno.test('constraints - newsletters has foreign key to users', async () => {
+Deno.test('constraints - emails has foreign key to users', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  const newslettersTableMatch = content.match(
-    /CREATE TABLE.*?newsletters.*?\([\s\S]*?\);/i,
+  const emailsTableMatch = content.match(
+    /CREATE TABLE.*?emails.*?\([\s\S]*?\);/i,
   );
 
   assertEquals(
-    newslettersTableMatch !== null,
+    emailsTableMatch !== null,
     true,
-    'newsletters table should exist',
+    'emails table should exist',
   );
 
-  const newslettersTable = newslettersTableMatch![0];
+  const emailsTable = emailsTableMatch![0];
 
   // Check for foreign key constraint
   assertEquals(
-    newslettersTable.toUpperCase().includes('REFERENCES') &&
-      newslettersTable.includes('users'),
+    emailsTable.toUpperCase().includes('REFERENCES') &&
+      emailsTable.includes('users'),
     true,
-    'newsletters should have foreign key to users',
+    'emails should have foreign key to users',
   );
 });
 
-Deno.test('constraints - customizations has foreign key to users', async () => {
+Deno.test('constraints - ai_usage has foreign key to users', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  const customizationsTableMatch = content.match(
-    /CREATE TABLE.*?customizations.*?\([\s\S]*?\);/i,
+  const aiUsageTableMatch = content.match(
+    /CREATE TABLE.*?ai_usage.*?\([\s\S]*?\);/i,
   );
 
   assertEquals(
-    customizationsTableMatch !== null,
+    aiUsageTableMatch !== null,
     true,
-    'customizations table should exist',
+    'ai_usage table should exist',
   );
 
-  const customizationsTable = customizationsTableMatch![0];
+  const aiUsageTable = aiUsageTableMatch![0];
 
   // Check for foreign key constraint
   assertEquals(
-    customizationsTable.toUpperCase().includes('REFERENCES') &&
-      customizationsTable.includes('users'),
+    aiUsageTable.toUpperCase().includes('REFERENCES') &&
+      aiUsageTable.includes('users'),
     true,
-    'customizations should have foreign key to users',
+    'ai_usage should have foreign key to users',
+  );
+});
+
+Deno.test('constraints - personifeed_subscribers has foreign key to users', async () => {
+  const content = await Deno.readTextFile(SCHEMA_FILE);
+
+  const subscribersTableMatch = content.match(
+    /CREATE TABLE.*?personifeed_subscribers.*?\([\s\S]*?\);/i,
+  );
+
+  assertEquals(
+    subscribersTableMatch !== null,
+    true,
+    'personifeed_subscribers table should exist',
+  );
+
+  const subscribersTable = subscribersTableMatch![0];
+
+  // Check for foreign key constraint
+  assertEquals(
+    subscribersTable.toUpperCase().includes('REFERENCES') &&
+      subscribersTable.includes('users'),
+    true,
+    'personifeed_subscribers should have foreign key to users',
   );
 });
 
