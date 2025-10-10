@@ -323,8 +323,13 @@ export const sendConfirmationEmail = async (
 ): Promise<void> => {
   try {
     const subject = 'Re: Your Daily Digest';
-    const body =
+
+    // Plain text version
+    const textBody =
       "Thanks for your feedback! Your customization will be reflected in tomorrow's newsletter at 11am ET.";
+
+    // HTML version with proper formatting
+    const htmlBody = generateReplyEmailHtml(textBody);
 
     // Use the same dynamic reply address for consistency
     const fromAddress = getReplyAddress(userId);
@@ -333,7 +338,8 @@ export const sendConfirmationEmail = async (
       to: userEmail,
       from: fromAddress,
       subject,
-      body,
+      body: textBody,
+      htmlBody,
       inReplyTo,
       references: inReplyTo ? [inReplyTo] : undefined,
       logContext: { userId, email: userEmail },
