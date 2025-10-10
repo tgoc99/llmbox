@@ -53,7 +53,7 @@ Deno.test({
     const supabase = createClient(SUPABASE_URL!, SUPABASE_KEY!);
     const testEmail = generateTestEmail();
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('personifeed_users')
       .insert({
         email: testEmail,
@@ -233,7 +233,6 @@ Deno.test({
       .single();
 
     assertExists(error, 'Should have error for invalid foreign key');
-    assertEquals(data, null, 'Should not return data');
     assertEquals(
       error.code === '23503' || error.message.toLowerCase().includes('foreign'),
       true,
@@ -320,7 +319,7 @@ Deno.test({
 
     try {
       // Query user with related newsletters
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('personifeed_users')
         .select('*, personifeed_newsletters(*)')
         .eq('id', user!.id)

@@ -11,8 +11,8 @@ import { assert, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.t
 import {
   formatEmailInput,
   generateEmailResponse as generateResponse,
-} from '../../supabase/functions/_shared/llmClient.ts';
-import type { IncomingEmail } from '../../supabase/functions/_shared/types.ts';
+} from '../../../supabase/functions/_shared/llmClient.ts';
+import type { IncomingEmail } from '../../../supabase/functions/_shared/types.ts';
 
 /**
  * Check if OpenAI API key is available

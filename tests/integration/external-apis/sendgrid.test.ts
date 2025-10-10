@@ -10,12 +10,12 @@ import { assert, assertEquals, assertExists } from 'https://deno.land/std@0.224.
 import {
   formatReplyEmail as formatOutgoingEmail,
   sendReplyEmail as sendEmail,
-} from '../../supabase/functions/_shared/emailSender.ts';
+} from '../../../supabase/functions/_shared/emailSender.ts';
 import type {
   IncomingEmail,
   LLMResponse,
   OutgoingEmail,
-} from '../../supabase/functions/_shared/types.ts';
+} from '../../../supabase/functions/_shared/types.ts';
 
 /**
  * Check if SendGrid credentials are available

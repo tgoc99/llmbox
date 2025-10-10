@@ -13,49 +13,51 @@ Deno.test({
     let openaiCalled = false;
     let sendgridCalled = false;
 
-    globalThis.fetch = (input: string | URL | Request) => {
+    globalThis.fetch = (input: string | URL | Request): Promise<Response> => {
       const url = input instanceof Request ? input.url : input.toString();
 
       // Mock OpenAI API
       if (url.includes('api.openai.com')) {
         openaiCalled = true;
-        return new Response(
-          JSON.stringify({
-            id: 'chatcmpl-test',
-            object: 'chat.completion',
-            created: Date.now(),
-            model: 'gpt-3.5-turbo',
-            choices: [
-              {
-                index: 0,
-                message: {
-                  role: 'assistant',
-                  content: 'This is a test response from the LLM.',
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: 'chatcmpl-test',
+              object: 'chat.completion',
+              created: Date.now(),
+              model: 'gpt-3.5-turbo',
+              choices: [
+                {
+                  index: 0,
+                  message: {
+                    role: 'assistant',
+                    content: 'This is a test response from the LLM.',
+                  },
+                  finish_reason: 'stop',
                 },
-                finish_reason: 'stop',
+              ],
+              usage: {
+                prompt_tokens: 50,
+                completion_tokens: 20,
+                total_tokens: 70,
               },
-            ],
-            usage: {
-              prompt_tokens: 50,
-              completion_tokens: 20,
-              total_tokens: 70,
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
             },
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          },
+          ),
         );
       }
 
       // Mock SendGrid API
       if (url.includes('api.sendgrid.com')) {
         sendgridCalled = true;
-        return new Response(null, { status: 202 });
+        return Promise.resolve(new Response(null, { status: 202 }));
       }
 
       // Default response
-      return new Response('Not Found', { status: 404 });
+      return Promise.resolve(new Response('Not Found', { status: 404 }));
     };
 
     try {
@@ -83,13 +85,13 @@ Deno.test({
       // For now, we'll test the individual components
 
       const { parseIncomingEmail } = await import(
-        '../../supabase/functions/email-webhook/emailParser.ts'
+        '../../../supabase/functions/email-webhook/emailParser.ts'
       );
-      const { generateResponse } = await import(
-        '../../supabase/functions/email-webhook/llmClient.ts'
+      const { generateEmailResponse: generateResponse } = await import(
+        '../../../supabase/functions/_shared/llmClient.ts'
       );
-      const { formatOutgoingEmail, sendEmail } = await import(
-        '../../supabase/functions/email-webhook/emailSender.ts'
+      const { formatReplyEmail: formatOutgoingEmail, sendReplyEmail: sendEmail } = await import(
+        '../../../supabase/functions/_shared/emailSender.ts'
       );
 
       // Step 1: Parse email
@@ -123,7 +125,7 @@ Deno.test({
   name: 'webhook - handles invalid payload',
   async fn() {
     const { parseIncomingEmail, ValidationError: _ValidationError } = await import(
-      '../../supabase/functions/email-webhook/emailParser.ts'
+      '../../../supabase/functions/email-webhook/emailParser.ts'
     );
 
     // Create invalid payload (missing required fields)
@@ -174,8 +176,8 @@ Deno.test({
     try {
       Deno.env.set('OPENAI_API_KEY', 'sk-test-key');
 
-      const { generateResponse } = await import(
-        '../../supabase/functions/email-webhook/llmClient.ts'
+      const { generateEmailResponse: generateResponse } = await import(
+        '../../../supabase/functions/_shared/llmClient.ts'
       );
 
       const mockEmail = {
@@ -233,7 +235,9 @@ Deno.test({
       Deno.env.set('SENDGRID_API_KEY', 'SG.test-key');
       Deno.env.set('SERVICE_EMAIL_ADDRESS', 'assistant@test.com');
 
-      const { sendEmail } = await import('../../supabase/functions/email-webhook/emailSender.ts');
+      const { sendReplyEmail: sendEmail } = await import(
+        '../../../supabase/functions/_shared/emailSender.ts'
+      );
 
       const mockEmail = {
         from: 'assistant@test.com',
@@ -289,8 +293,8 @@ Deno.test({
     try {
       Deno.env.set('OPENAI_API_KEY', 'sk-test-key');
 
-      const { generateResponse } = await import(
-        '../../supabase/functions/email-webhook/llmClient.ts'
+      const { generateEmailResponse: generateResponse } = await import(
+        '../../../supabase/functions/_shared/llmClient.ts'
       );
 
       const mockEmail = {
@@ -339,8 +343,8 @@ Deno.test({
       Deno.env.set('OPENAI_API_KEY', 'sk-test-key');
       Deno.env.set('OPENAI_TIMEOUT_MS', '50');
 
-      const { generateResponse } = await import(
-        '../../supabase/functions/email-webhook/llmClient.ts'
+      const { generateEmailResponse: generateResponse } = await import(
+        '../../../supabase/functions/_shared/llmClient.ts'
       );
 
       const mockEmail = {
