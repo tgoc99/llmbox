@@ -57,8 +57,8 @@ Deno.test('migrations - files are numbered sequentially', async () => {
   );
 });
 
-Deno.test('migrations - personifeed schema exists and is valid SQL', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - unified architecture exists and is valid SQL', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_unified_architecture.sql`;
 
   const content = await Deno.readTextFile(schemaFile);
 
@@ -73,19 +73,29 @@ Deno.test('migrations - personifeed schema exists and is valid SQL', async () =>
     'Should create users table',
   );
   assertEquals(
-    content.includes('newsletters'),
+    content.includes('products'),
     true,
-    'Should create newsletters table',
+    'Should create products table',
   );
   assertEquals(
-    content.includes('customizations'),
+    content.includes('user_products'),
     true,
-    'Should create customizations table',
+    'Should create user_products table',
+  );
+  assertEquals(
+    content.includes('emails'),
+    true,
+    'Should create emails table',
+  );
+  assertEquals(
+    content.includes('ai_token_usage'),
+    true,
+    'Should create ai_token_usage table',
   );
 });
 
-Deno.test('migrations - personifeed schema has proper indexes', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - unified architecture has proper indexes', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_unified_architecture.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for performance indexes
@@ -95,10 +105,15 @@ Deno.test('migrations - personifeed schema has proper indexes', async () => {
     true,
     'Should have index on users email',
   );
+  assertEquals(
+    content.includes('idx_emails_user'),
+    true,
+    'Should have index on emails user_id',
+  );
 });
 
-Deno.test('migrations - personifeed schema has foreign keys', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - unified architecture has foreign keys', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_unified_architecture.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for foreign key relationships
@@ -107,20 +122,25 @@ Deno.test('migrations - personifeed schema has foreign keys', async () => {
     true,
     'Should have foreign key references to users',
   );
+  assertEquals(
+    content.includes('REFERENCES products'),
+    true,
+    'Should have foreign key references to products',
+  );
 });
 
-Deno.test('migrations - personifeed schema has constraints', async () => {
-  const schemaFile = `${MIGRATIONS_DIR}/20251009000000_personifeed_schema.sql`;
+Deno.test('migrations - unified architecture has constraints', async () => {
+  const schemaFile = `${MIGRATIONS_DIR}/20251010000000_unified_architecture.sql`;
   const content = await Deno.readTextFile(schemaFile);
 
   // Check for NOT NULL constraints
   assertEquals(content.includes('NOT NULL'), true, 'Should have NOT NULL constraints');
 
-  // Check for CHECK constraints
+  // Check for UNIQUE constraints
   assertEquals(
-    content.includes('CHECK') || content.includes('CONSTRAINT'),
+    content.includes('UNIQUE'),
     true,
-    'Should have CHECK constraints for data validation',
+    'Should have UNIQUE constraints for data validation',
   );
 });
 

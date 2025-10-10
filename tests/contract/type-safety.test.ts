@@ -1,9 +1,11 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import type {
-  Customization,
+  AITokenUsage,
+  Email,
   IncomingEmail,
-  Newsletter,
+  PersonifeedSettings,
   User,
+  UserProduct,
 } from '../../supabase/functions/_shared/types.ts';
 
 /**
@@ -58,89 +60,128 @@ Deno.test('type-safety - User fields have correct types', () => {
   const user: User = {
     id: 'uuid-string',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   assertEquals(typeof user.id, 'string');
   assertEquals(typeof user.email, 'string');
-  assertEquals(typeof user.active, 'boolean');
-  assertEquals(user.created_at instanceof Date, true);
+  assertEquals(typeof user.created_at, 'string');
+  assertEquals(typeof user.updated_at, 'string');
 });
 
 Deno.test('type-safety - timestamps are Date objects', () => {
   const user: User = {
     id: 'uuid',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  // Validate Date type
-  assertEquals(user.created_at instanceof Date, true);
-  assertEquals(isNaN(user.created_at.getTime()), false);
+  // Validate that timestamps are ISO strings that can be parsed to Date
+  assertEquals(typeof user.created_at, 'string');
+  assertEquals(typeof user.updated_at, 'string');
+
+  const parsedCreated = new Date(user.created_at);
+  const parsedUpdated = new Date(user.updated_at);
+  assertEquals(isNaN(parsedCreated.getTime()), false);
+  assertEquals(isNaN(parsedUpdated.getTime()), false);
 });
 
-Deno.test('type-safety - Newsletter has correct structure', () => {
-  const newsletter: Newsletter = {
+Deno.test('type-safety - Email has correct structure', () => {
+  const email: Email = {
     id: 'uuid',
     user_id: 'user-uuid',
-    content: 'Newsletter content',
-    sent_at: new Date(),
-    status: 'sent',
-    created_at: new Date(),
+    product_id: 'llmbox',
+    direction: 'incoming',
+    type: 'llm_query',
+    from_email: 'user@example.com',
+    to_email: 'llmbox@example.com',
+    subject: 'Test',
+    body_text: 'Content',
+    body_html: null,
+    thread_id: null,
+    in_reply_to: null,
+    references: null,
+    external_id: null,
+    raw_headers: null,
+    sent_at: null,
+    delivered_at: null,
+    failed_at: null,
+    error_message: null,
+    created_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof newsletter.id, 'string');
-  assertEquals(typeof newsletter.user_id, 'string');
-  assertEquals(typeof newsletter.content, 'string');
-  assertEquals(newsletter.sent_at instanceof Date, true);
-  assertEquals(typeof newsletter.status, 'string');
-  assertEquals(newsletter.created_at instanceof Date, true);
+  assertEquals(typeof email.id, 'string');
+  assertEquals(typeof email.user_id, 'string');
+  assertEquals(typeof email.product_id, 'string');
+  assertEquals(typeof email.direction, 'string');
+  assertEquals(typeof email.type, 'string');
+  assertEquals(typeof email.created_at, 'string');
 });
 
-Deno.test('type-safety - Customization has correct structure', () => {
-  const customization: Customization = {
-    id: 'uuid',
+Deno.test('type-safety - UserProduct has correct structure', () => {
+  const userProduct: UserProduct = {
     user_id: 'user-uuid',
-    type: 'feedback',
-    content: 'User feedback',
-    created_at: new Date(),
+    product_id: 'personifeed',
+    status: 'active',
+    settings: { topics: ['AI'], initialPrompt: 'Test' },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof customization.id, 'string');
-  assertEquals(typeof customization.user_id, 'string');
-  assertEquals(typeof customization.type, 'string');
-  assertEquals(typeof customization.content, 'string');
-  assertEquals(customization.created_at instanceof Date, true);
+  assertEquals(typeof userProduct.user_id, 'string');
+  assertEquals(typeof userProduct.product_id, 'string');
+  assertEquals(typeof userProduct.status, 'string');
+  assertEquals(typeof userProduct.settings, 'object');
+  assertEquals(typeof userProduct.created_at, 'string');
 });
 
-Deno.test('type-safety - customization type is constrained', () => {
-  // type should be one of known values
-  const validTypes: Array<'initial' | 'feedback'> = ['initial', 'feedback'];
-
-  const customization: Customization = {
+Deno.test('type-safety - AITokenUsage has correct structure', () => {
+  const tokenUsage: AITokenUsage = {
     id: 'uuid',
     user_id: 'user-uuid',
-    type: 'feedback',
-    content: 'Content',
-    created_at: new Date(),
+    product_id: 'llmbox',
+    operation_type: 'llm_chat',
+    email_id: 'email-uuid',
+    model: 'gpt-4o-mini',
+    prompt_tokens: 100,
+    completion_tokens: 50,
+    total_tokens: 150,
+    estimated_cost_cents: 0.015,
+    metadata: {},
+    created_at: new Date().toISOString(),
   };
 
-  // In production, this should be validated
-  assertEquals(
-    validTypes.includes(customization.type),
-    true,
-    'customization type should be one of valid types',
-  );
+  assertEquals(typeof tokenUsage.id, 'string');
+  assertEquals(typeof tokenUsage.product_id, 'string');
+  assertEquals(typeof tokenUsage.model, 'string');
+  assertEquals(typeof tokenUsage.prompt_tokens, 'number');
+  assertEquals(typeof tokenUsage.completion_tokens, 'number');
+  assertEquals(typeof tokenUsage.total_tokens, 'number');
+});
+
+Deno.test('type-safety - PersonifeedSettings JSONB structure', () => {
+  const settings: PersonifeedSettings = {
+    topics: ['AI', 'Tech'],
+    preferred_time: '09:00',
+    timezone: 'America/New_York',
+    initialPrompt: 'Daily AI news',
+    feedbacks: ['More AI please'],
+  };
+
+  assertEquals(Array.isArray(settings.topics), true);
+  assertEquals(typeof settings.preferred_time, 'string');
+  assertEquals(typeof settings.timezone, 'string');
+  assertEquals(Array.isArray(settings.feedbacks), true);
 });
 
 Deno.test('type-safety - UUIDs are string format', () => {
   const user: User = {
     id: '550e8400-e29b-41d4-a716-446655440000',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   // UUID v4 format validation (optional but good practice)

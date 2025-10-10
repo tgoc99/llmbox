@@ -30,6 +30,8 @@ Deno.test('formatOutgoingEmail - creates correct OutgoingEmail structure', () =>
     content: 'I am doing great, thanks for asking!',
     model: 'gpt-3.5-turbo',
     tokenCount: 50,
+    promptTokens: 20,
+    completionTokens: 30,
     completionTime: 1500,
   };
 
@@ -59,6 +61,8 @@ Deno.test('formatOutgoingEmail - subject includes Re: prefix', () => {
     content: 'Our pricing starts at $10/month.',
     model: 'gpt-3.5-turbo',
     tokenCount: 30,
+    promptTokens: 15,
+    completionTokens: 15,
     completionTime: 1200,
   };
 
@@ -83,6 +87,8 @@ Deno.test('formatOutgoingEmail - does not double Re: prefix', () => {
     content: 'Sure, let me explain...',
     model: 'gpt-3.5-turbo',
     tokenCount: 40,
+    promptTokens: 20,
+    completionTokens: 20,
     completionTime: 1300,
   };
 
@@ -107,6 +113,8 @@ Deno.test('formatOutgoingEmail - recipient is set to original sender', () => {
     content: 'Response',
     model: 'gpt-3.5-turbo',
     tokenCount: 20,
+    promptTokens: 10,
+    completionTokens: 10,
     completionTime: 1000,
   };
 
@@ -131,6 +139,8 @@ Deno.test('formatOutgoingEmail - In-Reply-To header set to original message ID',
     content: 'Test response',
     model: 'gpt-3.5-turbo',
     tokenCount: 25,
+    promptTokens: 12,
+    completionTokens: 13,
     completionTime: 1100,
   };
 
@@ -155,6 +165,8 @@ Deno.test('formatOutgoingEmail - References array includes original message ID',
     content: 'Test response',
     model: 'gpt-3.5-turbo',
     tokenCount: 25,
+    promptTokens: 12,
+    completionTokens: 13,
     completionTime: 1100,
   };
 
@@ -183,6 +195,8 @@ Deno.test('formatOutgoingEmail - ensures message IDs have angle brackets', () =>
     content: 'Test response',
     model: 'gpt-3.5-turbo',
     tokenCount: 25,
+    promptTokens: 12,
+    completionTokens: 13,
     completionTime: 1100,
   };
 
@@ -212,6 +226,8 @@ Deno.test('formatOutgoingEmail - filters out empty references', () => {
     content: 'Test response',
     model: 'gpt-3.5-turbo',
     tokenCount: 25,
+    promptTokens: 12,
+    completionTokens: 13,
     completionTime: 1100,
   };
 

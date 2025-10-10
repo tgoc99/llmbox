@@ -76,9 +76,6 @@ llmbox/
 │   │   ├── external-apis/             # OpenAI, SendGrid, Supabase
 │   │   ├── llmbox/                    # LLMBox integration tests
 │   │   └── personifeed/               # Personifeed integration tests
-│   ├── e2e/                           # Full user journeys
-│   │   ├── llmbox/                    # Email-to-response flows
-│   │   └── personifeed/               # Signup-newsletter-reply flows
 │   └── README.md                      # Testing guide
 ├── web/                               # Next.js landing page
 │   ├── app/                           # App Router pages
@@ -129,7 +126,6 @@ deno task test                # Fast tests only (unit + contract)
 deno task test:unit           # Unit tests only
 deno task test:contract       # Contract/schema tests
 deno task test:integration    # Integration tests (requires API keys, $$$)
-deno task test:e2e            # E2E tests (very slow, $$$$)
 deno task test:all            # Everything (slow, expensive)
 deno task test:pre-deploy     # Fast + integration (run before deploy)
 deno task test:ci             # CI-safe tests (no API calls)
@@ -173,13 +169,6 @@ The repository follows a comprehensive testing pyramid:
    - Command: `deno task test:integration`
    - **⚠️ Only run before deployment or when debugging API issues**
 
-4. **E2E Tests** (`tests/e2e/`) - Full user journeys (very slow, $$$$
-   )
-   - Complete signup-to-newsletter flows
-   - Email-to-response workflows
-   - Command: `deno task test:e2e`
-   - **⚠️ Only run before major releases or weekly**
-
 ### Testing Workflow
 
 ```bash
@@ -201,7 +190,6 @@ deno task test:all
 - Unit tests: > 80%
 - Contract tests: > 70%
 - Integration tests: Key workflows covered
-- E2E tests: Critical user journeys
 
 See [tests/README.md](tests/README.md) for detailed testing guide.
 

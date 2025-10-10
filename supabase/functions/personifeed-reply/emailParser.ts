@@ -32,6 +32,28 @@ const extractMessageId = (headers: string): string | null => {
 };
 
 /**
+ * Extract In-Reply-To from email headers
+ */
+const extractInReplyTo = (headers: string): string | null => {
+  const match = headers.match(/In-Reply-To:\s*(<[^>]+>)/i);
+  return match ? match[1] : null;
+};
+
+/**
+ * Extract References from email headers (array of Message-IDs)
+ */
+const extractReferences = (headers: string): string[] => {
+  const match = headers.match(/References:\s*(.+)/i);
+  if (!match) return [];
+
+  // Split by whitespace and filter out empty strings
+  return match[1]
+    .split(/\s+/)
+    .map((ref) => ref.trim())
+    .filter((ref) => ref.length > 0);
+};
+
+/**
  * Clean email body text (remove quotes, signatures, etc.)
  */
 const cleanEmailBody = (body: string): string => {
@@ -82,11 +104,21 @@ const extractUserIdFromReplyAddress = (to: string): string | null => {
  */
 export const parseReplyEmail = (
   formData: FormData,
-): { from: string; to: string; userId: string | null; body: string; messageId: string | null } => {
+): {
+  from: string;
+  to: string;
+  userId: string | null;
+  body: string;
+  messageId: string | null;
+  subject: string | null;
+  inReplyTo: string | null;
+  references: string[];
+} => {
   // Extract required fields
   const from = formData.get('from')?.toString();
   const to = formData.get('to')?.toString();
   const text = formData.get('text')?.toString();
+  const subject = formData.get('subject')?.toString() || null;
   const headers = formData.get('headers')?.toString() || '';
 
   // Validate required fields
@@ -115,8 +147,10 @@ export const parseReplyEmail = (
   // Extract userId from TO address
   const userId = extractUserIdFromReplyAddress(to);
 
-  // Extract message ID if available
+  // Extract threading info
   const messageId = extractMessageId(headers);
+  const inReplyTo = extractInReplyTo(headers);
+  const references = extractReferences(headers);
 
   // Clean email body
   const cleanedBody = cleanEmailBody(text);
@@ -127,5 +161,8 @@ export const parseReplyEmail = (
     userId,
     body: cleanedBody,
     messageId,
+    subject,
+    inReplyTo,
+    references,
   };
 };

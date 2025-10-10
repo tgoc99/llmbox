@@ -10,7 +10,7 @@ import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert
  * - Relationships
  */
 
-const SCHEMA_FILE = './supabase/migrations/20251009000000_personifeed_schema.sql';
+const SCHEMA_FILE = './supabase/migrations/20251010000000_unified_architecture.sql';
 
 Deno.test('schema-contract - users table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
@@ -29,8 +29,8 @@ Deno.test('schema-contract - users has expected columns', async () => {
   const expectedColumns = [
     'id',
     'email',
-    'active',
     'created_at',
+    'updated_at',
   ];
 
   for (const column of expectedColumns) {
@@ -42,25 +42,27 @@ Deno.test('schema-contract - users has expected columns', async () => {
   }
 });
 
-Deno.test('schema-contract - newsletters table exists', async () => {
+Deno.test('schema-contract - emails table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   assertEquals(
-    content.includes('newsletters'),
+    content.includes('emails'),
     true,
-    'newsletters table should be defined',
+    'emails table should be defined',
   );
 });
 
-Deno.test('schema-contract - newsletters has expected columns', async () => {
+Deno.test('schema-contract - emails has expected columns', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   const expectedColumns = [
     'id',
     'user_id',
-    'content',
-    'sent_at',
-    'status',
+    'product_id',
+    'direction',
+    'type',
+    'from_email',
+    'to_email',
     'created_at',
   ];
 
@@ -68,29 +70,29 @@ Deno.test('schema-contract - newsletters has expected columns', async () => {
     assertEquals(
       content.includes(column),
       true,
-      `newsletters should have ${column} column`,
+      `emails should have ${column} column`,
     );
   }
 });
 
-Deno.test('schema-contract - customizations table exists', async () => {
+Deno.test('schema-contract - user_products table exists', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   assertEquals(
-    content.includes('customizations'),
+    content.includes('user_products'),
     true,
-    'customizations table should be defined',
+    'user_products table should be defined',
   );
 });
 
-Deno.test('schema-contract - customizations has expected columns', async () => {
+Deno.test('schema-contract - user_products has expected columns', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   const expectedColumns = [
     'id',
     'user_id',
-    'type',
-    'content',
+    'product_id',
+    'settings',
     'created_at',
   ];
 
@@ -98,7 +100,7 @@ Deno.test('schema-contract - customizations has expected columns', async () => {
     assertEquals(
       content.includes(column),
       true,
-      `customizations should have ${column} column`,
+      `user_products should have ${column} column`,
     );
   }
 });
@@ -146,23 +148,21 @@ Deno.test('schema-contract - email column has proper type', async () => {
   );
 });
 
-Deno.test('schema-contract - boolean columns use BOOLEAN type', async () => {
+Deno.test('schema-contract - ENUM types are used properly', async () => {
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
-  // Find active column
-  const usersTableMatch = content.match(
-    /CREATE TABLE.*?users.*?\([\s\S]*?\);/i,
+  // Should have ENUM types for direction and type fields
+  assertEquals(
+    content.toUpperCase().includes('CREATE TYPE') &&
+      content.includes('email_direction'),
+    true,
+    'Should have email_direction ENUM type',
   );
 
-  const usersTable = usersTableMatch![0];
-  const activeLine = usersTable.split('\n').find((line) => line.includes('active'));
-
-  assertExists(activeLine, 'Should have active column');
   assertEquals(
-    activeLine.toUpperCase().includes('BOOLEAN') ||
-      activeLine.toUpperCase().includes('BOOL'),
+    content.includes('email_type'),
     true,
-    'active should be BOOLEAN type',
+    'Should have email_type ENUM type',
   );
 });
 
@@ -189,7 +189,7 @@ Deno.test('schema-contract - table names follow naming convention', async () => 
   const content = await Deno.readTextFile(SCHEMA_FILE);
 
   // Check that expected tables exist
-  const expectedTables = ['users', 'customizations', 'newsletters'];
+  const expectedTables = ['users', 'products', 'user_products', 'emails', 'ai_token_usage'];
   const tableMatches = content.matchAll(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(\w+)/gi);
 
   const foundTables = [];

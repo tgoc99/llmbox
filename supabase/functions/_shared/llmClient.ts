@@ -127,7 +127,9 @@ export const generateLLMResponse = async (
     // Extract response data
     const content = response.output_text;
     const model = response.model;
-    const tokenCount = response.usage?.total_tokens || 0;
+    const promptTokens = response.usage?.input_tokens || 0;
+    const completionTokens = response.usage?.output_tokens || 0;
+    const tokenCount = response.usage?.total_tokens || (promptTokens + completionTokens);
     const completionTime = Date.now() - startTime;
 
     // Check if web search was used (tools_used may not be in response type yet)
@@ -139,6 +141,8 @@ export const generateLLMResponse = async (
     logInfo('openai_api_response_received', {
       ...logContext,
       model,
+      promptTokens,
+      completionTokens,
       tokenCount,
       completionTimeMs: completionTime,
       responseLength: content.length,
@@ -158,6 +162,8 @@ export const generateLLMResponse = async (
       content,
       model,
       tokenCount,
+      promptTokens,
+      completionTokens,
       completionTime,
     };
   } catch (error) {

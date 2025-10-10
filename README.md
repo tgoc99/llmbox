@@ -237,7 +237,7 @@ Or: Supabase Dashboard → Project → Edge Functions → email-webhook → Logs
 
 ## 🧪 Testing
 
-Comprehensive test suite with 175 tests covering unit, contract, integration, and E2E scenarios.
+Comprehensive test suite with 219 tests covering unit, contract, and integration scenarios.
 
 ```bash
 # Fast tests (unit + contract) - run constantly
