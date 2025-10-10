@@ -31,28 +31,11 @@ const processSubscriber = async (
       return false;
     }
 
-    // Generate newsletter content using interests and feedback
-    const customizations = [
-      {
-        id: subscriber.id,
-        user_id: user.id,
-        content: subscriber.interests,
-        type: 'initial' as const,
-        created_at: new Date(),
-      },
-      ...feedback.map((f) => ({
-        id: f.id,
-        user_id: f.user_id,
-        content: f.content || '',
-        type: 'feedback' as const,
-        created_at: new Date(f.created_at),
-      })),
-    ];
-
-    // Generate newsletter content
+    // Generate newsletter content with interests and feedback
     const content = await generateNewsletterContent(
-      { ...user, active: true, created_at: new Date(user.created_at) },
-      customizations,
+      user,
+      subscriber.interests,
+      feedback,
     );
 
     // Send email first

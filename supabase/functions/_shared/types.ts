@@ -73,39 +73,8 @@ export interface LLMResponse {
 }
 
 // Personifeed-specific types
-
-/**
- * User entity from database
- */
-export interface User {
-  id: string;
-  email: string;
-  created_at: Date;
-  active: boolean;
-}
-
-/**
- * Customization entity from database
- */
-export interface Customization {
-  id: string;
-  user_id: string;
-  content: string;
-  type: 'initial' | 'feedback';
-  created_at: Date;
-}
-
-/**
- * Newsletter entity from database
- */
-export interface Newsletter {
-  id: string;
-  user_id: string;
-  content: string;
-  sent_at: Date | null;
-  status: 'pending' | 'sent' | 'failed';
-  created_at: Date;
-}
+// NOTE: Old User, Customization, and Newsletter interfaces have been removed.
+// Use DatabaseUser, DatabasePersonifeedFeedback, and emails table instead.
 
 /**
  * Signup request from landing page

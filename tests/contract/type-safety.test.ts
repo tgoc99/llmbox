@@ -1,9 +1,8 @@
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import type {
-  Customization,
+  DatabasePersonifeedSubscriber,
+  DatabaseUser,
   IncomingEmail,
-  Newsletter,
-  User,
 } from '../../supabase/functions/_shared/types.ts';
 
 /**
@@ -13,6 +12,9 @@ import type {
  * - Type guards work correctly
  * - Invalid data is rejected
  * - Type conversions are safe
+ *
+ * NOTE: Old User, Newsletter, Customization tests removed.
+ * See tests/unit/database/database-helpers.test.ts for comprehensive database type tests.
  */
 
 Deno.test('type-safety - valid IncomingEmail passes structure check', () => {
@@ -38,7 +40,6 @@ Deno.test('type-safety - valid IncomingEmail passes structure check', () => {
 });
 
 Deno.test('type-safety - email addresses must be strings', () => {
-  // This would fail at compile time, but validates runtime expectation
   const email: IncomingEmail = {
     from: 'user@example.com',
     to: 'assistant@llmbox.pro',
@@ -54,102 +55,85 @@ Deno.test('type-safety - email addresses must be strings', () => {
   assertEquals(typeof email.to === 'string', true);
 });
 
-Deno.test('type-safety - User fields have correct types', () => {
-  const user: User = {
+Deno.test('type-safety - DatabaseUser fields have correct types', () => {
+  const user: DatabaseUser = {
     id: 'uuid-string',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    name: 'Test User',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   assertEquals(typeof user.id, 'string');
   assertEquals(typeof user.email, 'string');
-  assertEquals(typeof user.active, 'boolean');
-  assertEquals(user.created_at instanceof Date, true);
+  assertEquals(typeof user.name, 'string');
+  assertEquals(typeof user.created_at, 'string');
+  assertEquals(typeof user.updated_at, 'string');
 });
 
-Deno.test('type-safety - timestamps are Date objects', () => {
-  const user: User = {
+Deno.test('type-safety - timestamps are ISO strings', () => {
+  const user: DatabaseUser = {
     id: 'uuid',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    name: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  // Validate Date type
-  assertEquals(user.created_at instanceof Date, true);
-  assertEquals(isNaN(user.created_at.getTime()), false);
+  // Validate ISO string format
+  assertEquals(typeof user.created_at, 'string');
+  assertEquals(new Date(user.created_at).toISOString(), user.created_at);
 });
 
-Deno.test('type-safety - Newsletter has correct structure', () => {
-  const newsletter: Newsletter = {
+Deno.test('type-safety - DatabasePersonifeedSubscriber has correct structure', () => {
+  const subscriber: DatabasePersonifeedSubscriber = {
     id: 'uuid',
     user_id: 'user-uuid',
-    content: 'Newsletter content',
-    sent_at: new Date(),
-    status: 'sent',
-    created_at: new Date(),
+    interests: 'AI, tech, programming',
+    is_active: true,
+    last_newsletter_sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof newsletter.id, 'string');
-  assertEquals(typeof newsletter.user_id, 'string');
-  assertEquals(typeof newsletter.content, 'string');
-  assertEquals(newsletter.sent_at instanceof Date, true);
-  assertEquals(typeof newsletter.status, 'string');
-  assertEquals(newsletter.created_at instanceof Date, true);
+  assertEquals(typeof subscriber.id, 'string');
+  assertEquals(typeof subscriber.user_id, 'string');
+  assertEquals(typeof subscriber.interests, 'string');
+  assertEquals(typeof subscriber.is_active, 'boolean');
+  assertEquals(typeof subscriber.created_at, 'string');
 });
 
-Deno.test('type-safety - Customization has correct structure', () => {
-  const customization: Customization = {
+Deno.test('type-safety - subscriber is_active is boolean', () => {
+  const subscriber: DatabasePersonifeedSubscriber = {
     id: 'uuid',
     user_id: 'user-uuid',
-    type: 'feedback',
-    content: 'User feedback',
-    created_at: new Date(),
+    interests: 'Tech',
+    is_active: true,
+    last_newsletter_sent_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof customization.id, 'string');
-  assertEquals(typeof customization.user_id, 'string');
-  assertEquals(typeof customization.type, 'string');
-  assertEquals(typeof customization.content, 'string');
-  assertEquals(customization.created_at instanceof Date, true);
-});
-
-Deno.test('type-safety - customization type is constrained', () => {
-  // type should be one of known values
-  const validTypes: Array<'initial' | 'feedback'> = ['initial', 'feedback'];
-
-  const customization: Customization = {
-    id: 'uuid',
-    user_id: 'user-uuid',
-    type: 'feedback',
-    content: 'Content',
-    created_at: new Date(),
-  };
-
-  // In production, this should be validated
-  assertEquals(
-    validTypes.includes(customization.type),
-    true,
-    'customization type should be one of valid types',
-  );
+  // is_active must be boolean
+  assertEquals(typeof subscriber.is_active, 'boolean');
 });
 
 Deno.test('type-safety - UUIDs are string format', () => {
-  const user: User = {
+  const user: DatabaseUser = {
     id: '550e8400-e29b-41d4-a716-446655440000',
     email: 'user@example.com',
-    created_at: new Date(),
-    active: true,
+    name: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  // UUID v4 format validation (optional but good practice)
+  // UUID v4 format validation
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   assertEquals(typeof user.id, 'string');
   assertEquals(user.id.length, 36);
 
-  // If it's a valid UUID format
+  // Validate UUID format
   if (uuidPattern.test(user.id)) {
     assertEquals(uuidPattern.test(user.id), true);
   }

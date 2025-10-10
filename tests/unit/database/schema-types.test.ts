@@ -1,99 +1,110 @@
-import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import type {
+  DatabasePersonifeedFeedback,
+  DatabasePersonifeedSubscriber,
+  DatabaseUser,
+} from '../../../supabase/functions/_shared/types.ts';
 
 /**
- * Schema-to-TypeScript Type Tests
+ * Database Schema Type Tests
  *
- * Validates that TypeScript interfaces match the database schema.
- * This prevents runtime errors from schema/type mismatches.
+ * Tests database TypeScript interfaces match expected structure.
+ * These tests validate the multi-tenant schema types.
+ *
+ * NOTE: Old User, Newsletter, Customization tests removed.
+ * The multi-tenant schema uses DatabaseUser, emails table, and personifeed_feedback instead.
  */
 
-// Import types from shared types file
-import type { Customization, Newsletter, User } from '../../../supabase/functions/_shared/types.ts';
-
-Deno.test('schema-types - User interface has required fields', () => {
-  // This test validates the interface structure exists
-  const mockUser: User = {
-    id: 'test-id',
-    email: 'test@example.com',
-    created_at: new Date(),
-    active: true,
+Deno.test('schema-types - DatabaseUser interface has required fields', () => {
+  const user: DatabaseUser = {
+    id: 'uuid-string',
+    email: 'user@example.com',
+    name: 'Test User',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertExists(mockUser.id);
-  assertExists(mockUser.email);
-  assertEquals(typeof mockUser.active, 'boolean');
-  assertExists(mockUser.created_at);
-  assertEquals(mockUser.created_at instanceof Date, true);
+  assertEquals(typeof user.id, 'string');
+  assertEquals(typeof user.email, 'string');
+  assertEquals(typeof user.created_at, 'string');
 });
 
-Deno.test('schema-types - Newsletter interface has required fields', () => {
-  const mockNewsletter: Newsletter = {
-    id: 'test-id',
-    user_id: 'user-id',
-    content: 'Newsletter content',
-    sent_at: new Date(),
-    status: 'sent',
-    created_at: new Date(),
+Deno.test('schema-types - DatabasePersonifeedSubscriber interface has required fields', () => {
+  const subscriber: DatabasePersonifeedSubscriber = {
+    id: 'uuid-string',
+    user_id: 'user-uuid',
+    interests: 'Tech, AI',
+    is_active: true,
+    last_newsletter_sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertExists(mockNewsletter.id);
-  assertExists(mockNewsletter.user_id);
-  assertExists(mockNewsletter.content);
-  assertExists(mockNewsletter.sent_at);
-  assertExists(mockNewsletter.status);
-  assertExists(mockNewsletter.created_at);
-  assertEquals(mockNewsletter.sent_at instanceof Date, true);
-  assertEquals(mockNewsletter.created_at instanceof Date, true);
+  assertEquals(typeof subscriber.id, 'string');
+  assertEquals(typeof subscriber.user_id, 'string');
+  assertEquals(typeof subscriber.interests, 'string');
+  assertEquals(typeof subscriber.is_active, 'boolean');
 });
 
-Deno.test('schema-types - Customization interface has required fields', () => {
-  const mockCustomization: Customization = {
-    id: 'test-id',
-    user_id: 'user-id',
-    type: 'feedback',
-    content: 'Customization content',
-    created_at: new Date(),
+Deno.test('schema-types - DatabasePersonifeedFeedback interface has required fields', () => {
+  const feedback: DatabasePersonifeedFeedback = {
+    id: 'uuid-string',
+    user_id: 'user-uuid',
+    newsletter_email_id: 'email-uuid',
+    feedback_type: 'reply',
+    content: 'Great newsletter!',
+    sentiment: 'positive',
+    created_at: new Date().toISOString(),
+    metadata: {},
   };
 
-  assertExists(mockCustomization.id);
-  assertExists(mockCustomization.user_id);
-  assertExists(mockCustomization.type);
-  assertExists(mockCustomization.content);
-  assertExists(mockCustomization.created_at);
-  assertEquals(mockCustomization.created_at instanceof Date, true);
+  assertEquals(typeof feedback.id, 'string');
+  assertEquals(typeof feedback.user_id, 'string');
+  assertEquals(typeof feedback.feedback_type, 'string');
 });
 
 Deno.test('schema-types - User email field is string', () => {
-  const mockUser: User = {
-    id: 'test-id',
+  const user: DatabaseUser = {
+    id: 'uuid',
     email: 'test@example.com',
-    created_at: new Date(),
-    active: true,
+    name: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof mockUser.email, 'string');
+  assertEquals(typeof user.email, 'string');
+  assertEquals(user.email.includes('@'), true);
 });
 
-Deno.test('schema-types - User active is boolean', () => {
-  const mockUser: User = {
-    id: 'test-id',
-    email: 'test@example.com',
-    created_at: new Date(),
-    active: true,
+Deno.test('schema-types - Subscriber is_active is boolean', () => {
+  const subscriber: DatabasePersonifeedSubscriber = {
+    id: 'uuid',
+    user_id: 'user-uuid',
+    interests: 'Tech',
+    is_active: false,
+    last_newsletter_sent_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  assertEquals(typeof mockUser.active, 'boolean');
+  assertEquals(typeof subscriber.is_active, 'boolean');
+  assertEquals(subscriber.is_active, false);
 });
 
-Deno.test('schema-types - timestamp fields are Date objects', () => {
-  const mockUser: User = {
-    id: 'test-id',
+Deno.test('schema-types - timestamp fields are ISO strings', () => {
+  const now = new Date().toISOString();
+  const user: DatabaseUser = {
+    id: 'uuid',
     email: 'test@example.com',
-    created_at: new Date(),
-    active: true,
+    name: null,
+    created_at: now,
+    updated_at: now,
   };
 
-  // Validate Date type
-  assertEquals(mockUser.created_at instanceof Date, true);
-  assertEquals(isNaN(mockUser.created_at.getTime()), false);
+  assertEquals(typeof user.created_at, 'string');
+  assertEquals(typeof user.updated_at, 'string');
+
+  // Should be valid ISO strings
+  assertEquals(new Date(user.created_at).toISOString(), user.created_at);
+  assertEquals(new Date(user.updated_at).toISOString(), user.updated_at);
 });

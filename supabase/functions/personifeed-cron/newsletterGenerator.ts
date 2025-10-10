@@ -3,29 +3,27 @@
  * Uses OpenAI Responses API with web search enabled
  */
 
-import type { Customization, User } from '../_shared/types.ts';
+import type { DatabasePersonifeedFeedback, DatabaseUser } from '../_shared/types.ts';
 import { LLMError } from '../_shared/errors.ts';
 import { logError, logInfo } from '../_shared/logger.ts';
 import { generateLLMResponse } from '../_shared/llmClient.ts';
 import { getNewsletterSystemPrompt } from './prompts.ts';
 
 /**
- * Format customizations into context for LLM
+ * Format subscriber interests and feedback into context for LLM
  */
-const formatCustomizationsContext = (customizations: Customization[]): string => {
-  const initial = customizations.find((c) => c.type === 'initial');
-  const feedbacks = customizations.filter((c) => c.type === 'feedback');
+const formatFeedbackContext = (
+  interests: string,
+  feedback: DatabasePersonifeedFeedback[],
+): string => {
+  let context = `User's interests: ${interests}\n\n`;
 
-  let context = '';
-
-  if (initial) {
-    context += `User's initial request:\n${initial.content}\n\n`;
-  }
-
-  if (feedbacks.length > 0) {
+  if (feedback.length > 0) {
     context += `User feedback for customization:\n`;
-    feedbacks.forEach((feedback, index) => {
-      context += `${index + 1}. ${feedback.content}\n`;
+    feedback.forEach((item, index) => {
+      if (item.content) {
+        context += `${index + 1}. ${item.content}\n`;
+      }
     });
     context += '\n';
   }
@@ -38,19 +36,20 @@ const formatCustomizationsContext = (customizations: Customization[]): string =>
  * Uses shared LLM client with Responses API and web search
  */
 export const generateNewsletterContent = async (
-  user: User,
-  customizations: Customization[],
+  user: DatabaseUser,
+  interests: string,
+  feedback: DatabasePersonifeedFeedback[],
 ): Promise<string> => {
   const startTime = Date.now();
 
   try {
-    // Format user context from customizations
-    const userContext = formatCustomizationsContext(customizations);
+    // Format user context from interests and feedback
+    const userContext = formatFeedbackContext(interests, feedback);
 
     logInfo('newsletter_generation_started', {
       userId: user.id,
       email: user.email,
-      customizationsCount: customizations.length,
+      feedbackCount: feedback.length,
     });
 
     // Generate newsletter content using Responses API
@@ -93,7 +92,7 @@ export const generateNewsletterContent = async (
       error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       durationMs: Date.now() - startTime,
-      customizationsCount: customizations.length,
+      feedbackCount: feedback.length,
     });
 
     throw new LLMError('Failed to generate newsletter', {
