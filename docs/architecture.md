@@ -495,52 +495,156 @@ sequenceDiagram
 
 ## Database Schema
 
-**N/A for MVP - Stateless Architecture**
+**Multi-Tenant PostgreSQL Database**
 
-The MVP does not use a database. All data is processed in-memory during the Edge Function execution
-and not persisted.
+The system uses a multi-tenant database architecture on Supabase PostgreSQL, supporting multiple
+products (llmbox, personifeed) with shared core tables and product-specific tables.
 
-**Post-MVP Database Design (Future):**
-
-When conversation history is added in post-MVP, the following PostgreSQL schema will be implemented
-on Supabase:
+**Current Schema** (`20251010000000_multi_tenant_schema.sql`):
 
 ```sql
--- Users table (for future multi-user support)
+-- ============================================================================
+-- CORE TABLES (Shared across all products)
+-- ============================================================================
+
+-- Product/subdomain enum (extensible)
+CREATE TYPE product_type AS ENUM (
+  'email-webhook',  -- LLMBox chat via email
+  'personifeed'     -- AI-personalized newsletters
+);
+
+-- Email direction
+CREATE TYPE email_direction AS ENUM ('inbound', 'outbound');
+
+-- Email types (extensible, product-agnostic)
+CREATE TYPE email_type AS ENUM (
+  -- email-webhook types
+  'user_query',       -- User sends question
+  'llm_response',     -- LLM replies to user
+
+  -- personifeed types
+  'newsletter',       -- Daily newsletter
+  'feedback_reply',   -- User provides feedback/customization
+
+  -- Future types
+  'other'
+);
+
+-- Users table (single source of truth for all email addresses)
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,  -- Optional display name
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Conversations table (email threads)
-CREATE TABLE conversations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id),
-  subject VARCHAR(500) NOT NULL,
-  message_id VARCHAR(500) UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Main emails table (tracks ALL content emails)
+CREATE TABLE emails (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product product_type NOT NULL,
+  direction email_direction NOT NULL,
+  email_type email_type NOT NULL,
+
+  -- Email envelope
+  from_email TEXT NOT NULL,
+  to_email TEXT NOT NULL,
+  cc_emails TEXT[],
+  subject TEXT,
+
+  -- Content
+  raw_content TEXT,
+  processed_content TEXT,
+  html_content TEXT,
+
+  -- Threading support
+  thread_id TEXT,
+  parent_email_id UUID REFERENCES emails(id),
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT now(),
+  processed_at TIMESTAMPTZ,
+
+  -- Flexible metadata
+  metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Messages table (individual emails in threads)
-CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  conversation_id UUID REFERENCES conversations(id),
-  message_id VARCHAR(500) UNIQUE NOT NULL,
-  in_reply_to VARCHAR(500),
-  direction VARCHAR(20) NOT NULL, -- 'inbound' or 'outbound'
-  content TEXT NOT NULL,
-  model VARCHAR(50), -- LLM model used (null for inbound)
-  token_count INTEGER, -- tokens used (null for inbound)
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- AI token usage tracking (per user, per product)
+CREATE TABLE ai_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product product_type NOT NULL,
+  related_email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
+
+  -- Model information
+  model TEXT NOT NULL,
+  prompt_tokens INTEGER NOT NULL,
+  completion_tokens INTEGER NOT NULL,
+  total_tokens INTEGER NOT NULL,
+  estimated_cost_usd DECIMAL(10, 6),
+
+  created_at TIMESTAMPTZ DEFAULT now(),
+  metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_conversations_user ON conversations(user_id);
-CREATE INDEX idx_messages_conversation ON messages(conversation_id);
-CREATE INDEX idx_messages_message_id ON messages(message_id);
+-- ============================================================================
+-- PRODUCT-SPECIFIC TABLES (Personifeed)
+-- ============================================================================
+
+-- Personifeed: Subscriber details
+CREATE TABLE personifeed_subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  interests TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  last_newsletter_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Personifeed: Feedback tracking
+CREATE TABLE personifeed_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  newsletter_email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
+  feedback_type TEXT NOT NULL,
+  content TEXT,
+  sentiment TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- Indexes for performance
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_emails_user_id ON emails(user_id);
+CREATE INDEX idx_emails_product ON emails(product);
+CREATE INDEX idx_emails_direction ON emails(direction);
+CREATE INDEX idx_emails_email_type ON emails(email_type);
+CREATE INDEX idx_emails_thread_id ON emails(thread_id) WHERE thread_id IS NOT NULL;
+CREATE INDEX idx_emails_created_at ON emails(created_at DESC);
+CREATE INDEX idx_emails_product_user ON emails(product, user_id, created_at DESC);
+
+CREATE INDEX idx_ai_usage_user_id ON ai_usage(user_id);
+CREATE INDEX idx_ai_usage_product ON ai_usage(product);
+CREATE INDEX idx_ai_usage_created_at ON ai_usage(created_at DESC);
+CREATE INDEX idx_ai_usage_product_user ON ai_usage(product, user_id, created_at DESC);
+
+CREATE INDEX idx_personifeed_subscribers_user_id ON personifeed_subscribers(user_id);
+CREATE INDEX idx_personifeed_subscribers_active ON personifeed_subscribers(is_active, last_newsletter_sent_at);
+CREATE INDEX idx_personifeed_feedback_user_id ON personifeed_feedback(user_id);
+CREATE INDEX idx_personifeed_feedback_newsletter ON personifeed_feedback(newsletter_email_id);
+CREATE INDEX idx_personifeed_feedback_created_at ON personifeed_feedback(created_at DESC);
 ```
+
+**Design Principles:**
+
+- **Multi-Tenant:** Single database for all products with `product` enum for isolation
+- **Extensible:** Easy to add new products via enum types
+- **Normalized:** Users deduplicated across products
+- **Flexible:** JSONB metadata for product-specific data
+- **Performance:** Composite indexes for common query patterns
+- **Data Integrity:** Foreign keys with appropriate CASCADE/SET NULL behavior
 
 ---
 

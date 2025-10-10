@@ -237,11 +237,11 @@ Or: Supabase Dashboard → Project → Edge Functions → email-webhook → Logs
 
 ## 🧪 Testing
 
-Comprehensive test suite with 175 tests covering unit, contract, integration, and E2E scenarios.
+Comprehensive test suite with 245+ tests covering unit, contract, integration, and E2E scenarios.
 
 ```bash
 # Fast tests (unit + contract) - run constantly
-deno task test              # 175 tests in ~7s
+deno task test              # 245+ tests in ~7s
 deno task test:unit:watch   # Watch mode for development
 
 # Before committing
@@ -321,20 +321,22 @@ documentation.
 ### Tech Stack
 
 - **Runtime:** Deno + TypeScript
-- **Infrastructure:** Supabase Edge Functions (serverless)
+- **Infrastructure:** Supabase Edge Functions (serverless) + PostgreSQL
 - **Email:** SendGrid (Inbound Parse + Send API)
 - **AI:** OpenAI API (gpt-4o-mini, gpt-4o)
 - **Web:** Next.js 14 + React + TailwindCSS
+- **Database:** Supabase PostgreSQL (multi-tenant schema)
 - **Testing:** Deno test framework
 
 ### Key Principles
 
-- **Stateless:** No database (MVP), email threading via headers
+- **Multi-Tenant:** Shared database with product isolation (`email-webhook`, `personifeed`)
 - **Serverless:** Auto-scaling, pay-per-use
+- **Data Tracking:** All emails, AI usage, and user interactions persisted
 - **Error Handling:** Comprehensive try-catch, exponential backoff retries, user-friendly error
   emails
 - **Logging:** Structured JSON logs with correlation IDs
-- **Security:** No hardcoded secrets, input validation, webhook verification (planned)
+- **Security:** No hardcoded secrets, input validation, row-level security (planned)
 
 ## 🚦 Development Roadmap
 
@@ -347,13 +349,21 @@ documentation.
 - ✅ Comprehensive tests
 - ✅ Next.js landing page
 
-### Epic 2: Production Enhancements ⏳ Planned
+### Epic 2: Multi-Tenant Database ✅ Complete
 
+- ✅ Multi-tenant PostgreSQL schema
+- ✅ Email tracking for all products
+- ✅ AI usage tracking per user/product
+- ✅ User management with email deduplication
+- ✅ Personifeed subscriber and feedback tables
+
+### Epic 3: Production Enhancements ⏳ Planned
+
+- ☐ Row-level security policies
 - ☐ Webhook signature verification
 - ☐ Rate limiting and throttling
 - ☐ Enhanced monitoring and alerting
-- ☐ Conversation history (database)
-- ☐ User authentication
+- ☐ User authentication and dashboards
 
 ## 🤝 Contributing
 

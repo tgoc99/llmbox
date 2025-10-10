@@ -118,7 +118,7 @@ llmbox/  (repository root)
 │   │       ├── personifeed-cron-test.ts
 │   │       └── personifeed-reply-test.ts
 │   └── migrations/
-│       └── 20251009000000_personifeed_schema.sql
+│       └── 20251010000000_multi_tenant_schema.sql
 ├── web/                          # Shared Next.js app (llmbox + personifeed)
 │   ├── app/
 │   │   ├── page.tsx              # llmbox landing page (/)
@@ -632,105 +632,193 @@ for (let i = 0; i < users.length; i += batchSize) {
 
 ---
 
-## Data Models
+## Data Models (Multi-Tenant Schema)
 
-### User
+### Core Tables (Shared)
 
-**Purpose:** Represents a newsletter subscriber.
+#### User
+
+**Purpose:** Represents any user across all products (llmbox, personifeed).
 
 **Schema:**
 
 ```sql
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  active BOOLEAN DEFAULT TRUE,
-
-  CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_active ON users(active) WHERE active = TRUE;
 ```
 
 **TypeScript Interface:**
 
 ```typescript
-interface User {
+interface DatabaseUser {
   id: string;
   email: string;
-  created_at: Date;
-  active: boolean;
+  name: string | null;
+  created_at: string;
+  updated_at: string;
 }
 ```
 
-### Customization
+#### Email
 
-**Purpose:** Stores initial preferences and user feedback.
+**Purpose:** Tracks all sent/received emails across products.
 
 **Schema:**
 
 ```sql
-CREATE TABLE customizations (
+CREATE TABLE emails (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  type VARCHAR(20) NOT NULL CHECK (type IN ('initial', 'feedback')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  CONSTRAINT content_length CHECK (char_length(content) BETWEEN 1 AND 2000)
+  product product_type NOT NULL,
+  direction email_direction NOT NULL,
+  email_type email_type NOT NULL,
+  from_email TEXT NOT NULL,
+  to_email TEXT NOT NULL,
+  subject TEXT,
+  raw_content TEXT,
+  thread_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  metadata JSONB DEFAULT '{}'::jsonb
 );
-
-CREATE INDEX idx_customizations_user_id ON customizations(user_id);
-CREATE INDEX idx_customizations_created_at ON customizations(created_at);
 ```
 
 **TypeScript Interface:**
 
 ```typescript
-interface Customization {
+interface DatabaseEmail {
   id: string;
   user_id: string;
-  content: string;
-  type: 'initial' | 'feedback';
-  created_at: Date;
+  product: 'email-webhook' | 'personifeed';
+  direction: 'inbound' | 'outbound';
+  email_type: 'user_query' | 'llm_response' | 'newsletter' | 'feedback_reply' | 'other';
+  from_email: string;
+  to_email: string;
+  subject: string | null;
+  raw_content: string | null;
+  thread_id: string | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
 }
 ```
 
-### Newsletter
+#### AI Usage
 
-**Purpose:** Tracks generated newsletters and delivery status.
+**Purpose:** Tracks token usage per user per product.
 
 **Schema:**
 
 ```sql
-CREATE TABLE newsletters (
+CREATE TABLE ai_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  sent_at TIMESTAMP WITH TIME ZONE,
-  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  product product_type NOT NULL,
+  related_email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
+  model TEXT NOT NULL,
+  prompt_tokens INTEGER NOT NULL,
+  completion_tokens INTEGER NOT NULL,
+  total_tokens INTEGER NOT NULL,
+  estimated_cost_usd DECIMAL(10, 6),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
-
-CREATE INDEX idx_newsletters_user_id ON newsletters(user_id);
-CREATE INDEX idx_newsletters_status ON newsletters(status);
-CREATE INDEX idx_newsletters_sent_at ON newsletters(sent_at);
 ```
 
 **TypeScript Interface:**
 
 ```typescript
-interface Newsletter {
+interface DatabaseAIUsage {
   id: string;
   user_id: string;
-  content: string;
-  sent_at: Date | null;
-  status: 'pending' | 'sent' | 'failed';
-  created_at: Date;
+  product: 'email-webhook' | 'personifeed';
+  related_email_id: string | null;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number | null;
+  created_at: string;
 }
 ```
+
+### Product-Specific Tables (Personifeed)
+
+#### Personifeed Subscriber
+
+**Purpose:** Stores personifeed-specific subscriber details.
+
+**Schema:**
+
+```sql
+CREATE TABLE personifeed_subscribers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  interests TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  last_newsletter_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**TypeScript Interface:**
+
+```typescript
+interface DatabasePersonifeedSubscriber {
+  id: string;
+  user_id: string;
+  interests: string;
+  is_active: boolean;
+  last_newsletter_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+#### Personifeed Feedback
+
+**Purpose:** Stores user feedback and customizations.
+
+**Schema:**
+
+```sql
+CREATE TABLE personifeed_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  newsletter_email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
+  feedback_type TEXT NOT NULL,
+  content TEXT,
+  sentiment TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  metadata JSONB DEFAULT '{}'::jsonb
+);
+```
+
+**TypeScript Interface:**
+
+```typescript
+interface DatabasePersonifeedFeedback {
+  id: string;
+  user_id: string;
+  newsletter_email_id: string | null;
+  feedback_type: string;
+  content: string | null;
+  sentiment: string | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+```
+
+**Migration Path:**
+
+The multi-tenant schema consolidates the old `newsletters` and `customizations` tables into the
+shared `emails` and `personifeed_feedback` tables. Newsletters are now stored as
+`emails.email_type = 'newsletter'`, and feedback is stored in `personifeed_feedback`.
 
 ---
 
